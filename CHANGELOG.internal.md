@@ -4,6 +4,9 @@ This changelog documents internal development changes, refactors, tooling update
 
 ## [Unreleased]
 
+### Changed
+- Preserved the existing Claude manual-approval boundary explicitly across the Agent SDK's permission-mode behavior change and added regression coverage for permission configuration, MCP result envelopes, and background-task event ordering. Published `cyrus-claude-runner@0.2.74-test.3` and `cyrus-core@0.2.74-test.11` to the npm `test` channel for Hosted integration validation without moving either package's `latest` tag. ([CYPACK-1573](https://linear.app/ceedar/issue/CYPACK-1573/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1538](https://github.com/cyrusagents/cyrus/pull/1538), [cyrus-hosted#1186](https://github.com/cyrusagents/cyrus-hosted/pull/1186))
+
 ## [0.2.73] - 2026-09-29
 
 ### Changed

@@ -15,6 +15,7 @@
 	],
 	"scripts": {
 		"build": "tsgo",
+		"prepack": "pnpm run build",
 		"dev": "tsgo --watch",
 		"test": "vitest",
 		"test:run": "vitest run",

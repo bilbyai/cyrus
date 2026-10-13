@@ -5,7 +5,7 @@ This changelog documents internal development changes, refactors, tooling update
 ## [Unreleased]
 
 ### Changed
-- Rebuild the Claude runner before packing and verify installed release query options to catch stale artifacts that omit manual approval mode. Published `cyrus-claude-runner@0.2.74-test.5` and `cyrus-core@0.2.74-test.12` to the npm `test` channel for Hosted integration validation without moving either package's `latest` tag. ([CYPACK-1576](https://linear.app/ceedar/issue/CYPACK-1576), [#1540](https://github.com/cyrusagents/cyrus/pull/1540), [cyrus-hosted#1187](https://github.com/cyrusagents/cyrus-hosted/pull/1187))
+- Rebuild the Claude runner before packing and verify installed release query options to catch stale artifacts that omit manual approval mode. Record the replacement-pair runtime attempt and supported reconnect: the existing Claude identity returns a fresh revoked-token HTTP 401, so authenticated acceptance remains blocked. Published `cyrus-claude-runner@0.2.74-test.5` and `cyrus-core@0.2.74-test.12` to the npm `test` channel for Hosted integration validation without moving either package's `latest` tag. ([CYPACK-1576](https://linear.app/ceedar/issue/CYPACK-1576), [#1540](https://github.com/cyrusagents/cyrus/pull/1540), [cyrus-hosted#1187](https://github.com/cyrusagents/cyrus-hosted/pull/1187))
 
 ## [0.2.73] - 2026-09-29
 

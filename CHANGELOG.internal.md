@@ -4,6 +4,9 @@ This changelog documents internal development changes, refactors, tooling update
 
 ## [Unreleased]
 
+### Changed
+- Rebuild the Claude runner before packing and verify installed release query options to prevent stale artifacts from dropping the manual-approval policy. Published `cyrus-claude-runner@0.2.74-test.6` and `cyrus-core@0.2.74-test.13` to the npm `test` channel for Hosted integration without moving either package's `latest` tag. ([CYPACK-1578](https://linear.app/ceedar/issue/CYPACK-1578), [#1541](https://github.com/cyrusagents/cyrus/pull/1541), [cyrus-hosted#1189](https://github.com/cyrusagents/cyrus-hosted/pull/1189))
+
 ## [0.2.73] - 2026-09-29
 
 ### Changed

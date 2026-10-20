@@ -6,7 +6,8 @@ This changelog documents internal development changes, refactors, tooling update
 
 ## [0.2.74] - 2026-10-20
 
-_No internal-only changes._
+### Changed
+- Recorded release coverage for Codex issue sessions, sandbox writable-root enforcement on an isolated host, and inbox publication transport. ([CYPACK-1592](https://linear.app/ceedar/issue/CYPACK-1592/run-a-release), [#1548](https://github.com/cyrusagents/cyrus/pull/1548))
 
 ## [0.2.73] - 2026-09-29
 

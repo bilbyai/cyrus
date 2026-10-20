@@ -71,8 +71,8 @@ try {
 		[
 			launcher,
 			"sandbox",
-			"linux",
-			"--full-auto",
+			"-c",
+			'sandbox_mode="workspace-write"',
 			"-c",
 			`sandbox_workspace_write.writable_roots=${JSON.stringify(resolved.sandbox.writableRoots)}`,
 			"-c",

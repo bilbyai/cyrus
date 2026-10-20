@@ -1,4 +1,4 @@
-// Release evidence companion: run on Linux after pnpm build, without credentials.
+// Release evidence companion: run on an unnested host after pnpm build, without credentials.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
@@ -14,7 +14,7 @@ import { CodexConfigBuilder } from "../../../../packages/codex-runner/dist/confi
 import { RunnerConfigBuilder } from "../../../../packages/edge-worker/dist/RunnerConfigBuilder.js";
 import { resolveSandboxWritablePaths } from "../../../../packages/edge-worker/dist/sandboxWritablePaths.js";
 
-assert.equal(process.platform, "linux");
+assert.ok(["linux", "darwin"].includes(process.platform));
 const root = mkdtempSync(join(homedir(), "cypack-1592-sandbox-"));
 const cwd = join(root, "workspace");
 const allowed = join(root, "allowed");
@@ -107,7 +107,7 @@ try {
 	assert.equal(readFileSync(join(cwd, "proof.txt"), "utf8"), "workspace");
 	assert.equal(existsSync(join(denied, "proof.txt")), false);
 	console.log(
-		"PASS: issue config -> Codex config -> real Linux sandbox: workspace and whitelisted writes succeed; sibling write denied.",
+		"PASS: issue config -> Codex config -> real OS sandbox: workspace and whitelisted writes succeed; sibling write denied.",
 	);
 } finally {
 	rmSync(root, { recursive: true, force: true });

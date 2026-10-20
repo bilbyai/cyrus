@@ -76,6 +76,8 @@ try {
 			"-c",
 			`sandbox_workspace_write.writable_roots=${JSON.stringify(resolved.sandbox.writableRoots)}`,
 			"-c",
+			`sandbox_workspace_write.network_access=${resolved.sandbox.networkAccess}`,
+			"-c",
 			"sandbox_workspace_write.exclude_tmpdir_env_var=true",
 			"-c",
 			"sandbox_workspace_write.exclude_slash_tmp=true",

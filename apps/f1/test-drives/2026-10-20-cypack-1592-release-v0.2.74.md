@@ -73,7 +73,7 @@ The earlier Linux fixture attempts did not pass: initial attempts used obsolete 
 
 ## Result
 
-### Post-merge security refresh
+### Post-merge security refresh ([#1550](https://github.com/cyrusagents/cyrus/pull/1550))
 
 The first main-branch dry run ([39491213671](https://github.com/cyrusagents/cyrus/actions/runs/39491213671)) stopped at audit before any publication. The registry reported three additional advisories affecting MCP SDK 1.31.0 and Vite 8.0.16.
 
@@ -82,7 +82,7 @@ Updated both direct MCP SDK owners to 1.32.1, Vitest and its companion packages 
 Validation after the refresh:
 
 - Frozen install with strict peers, zero-advisory audit, build, typecheck and lint passed (14 existing lint warnings).
-- All package suites and all 162 CLI tests passed; CLI subprocess checks used the same 30-second local timeout as above.
+- 1,918 package tests passed (two skipped) and all 162 CLI tests passed; CLI subprocess checks used the same 30-second local timeout as above.
 - Three new real-HTTP tests exercise the production MCP connection-test handler: direct discovery succeeds, same-origin 307 discovery succeeds, and a cross-origin 307 fails without any request reaching the destination carrying custom credentials or an initialization body.
 - Re-ran `bun apps/f1/inbox-publication-drive.mjs` against the rebuilt runtime and updated MCP SDK: authenticated catalog discovery, two stable publications, queued receipts and unauthenticated 401 all passed. The receiver remains a local fixture.
 - The product does not configure experimental `taskStore`; session-task isolation is an upstream SDK fix, not a separately claimed Cyrus workflow.

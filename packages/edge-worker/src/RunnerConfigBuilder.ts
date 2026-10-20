@@ -176,6 +176,11 @@ export interface IssueRunnerConfigInput {
 	/** CA cert path for MITM TLS termination — passed via child process env */
 	egressCaCertPath?: string;
 	/**
+	 * Operator-whitelisted extra writable paths (absolute), from
+	 * `sandbox.writablePaths` / `CYRUS_SANDBOX_WRITABLE_PATHS`. Codex only.
+	 */
+	sandboxWritablePaths?: string[];
+	/**
 	 * GitHub App installation token matched to the session repository's org
 	 * (from the cyrus-hosted-pushed token store). When set, it's exposed to
 	 * the session ONLY as `CYRUS_GH_TOKEN` — the droplet's gh wrapper maps
@@ -548,6 +553,13 @@ export class RunnerConfigBuilder {
 				allowWrite: [input.session.workspace.path],
 				allowRead: [input.session.workspace.path, ...input.allowedDirectories],
 			};
+		}
+
+		// Operator-whitelisted extra writable paths (e.g. `~/.supabase`). Codex
+		// adds these as writable roots in both its default workspace-write mode
+		// and the egress-sandbox profile, so containment is otherwise unchanged.
+		if (runnerType === "codex" && input.sandboxWritablePaths?.length) {
+			config.writableRoots = input.sandboxWritablePaths;
 		}
 
 		if (input.resumeSessionId) {

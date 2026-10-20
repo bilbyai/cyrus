@@ -280,6 +280,17 @@ export const SandboxConfigSchema = z.object({
 	systemWideCert: z.boolean().optional(),
 
 	/**
+	 * Extra filesystem paths Codex sessions may write to, in addition to the
+	 * session worktree (e.g. `~/.supabase`). Codex keeps its sandbox
+	 * containment — these paths are added as writable roots rather than
+	 * loosening the sandbox mode. Applies whether or not the egress proxy is
+	 * `enabled`. `~/` is expanded; non-absolute entries are ignored. Merged
+	 * with the `CYRUS_SANDBOX_WRITABLE_PATHS` env var (comma- or
+	 * path-delimiter-separated).
+	 */
+	writablePaths: z.array(z.string()).optional(),
+
+	/**
 	 * Log all proxied requests (method, URL, domain, status).
 	 * @default true
 	 */

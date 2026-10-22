@@ -14,6 +14,23 @@
 - [x] The stop signal was accepted and the F1 server shut down gracefully.
 - [ ] The authenticated turn did not execute Read or Bash and did not return `SDK_RUNTIME_OK`.
 
+## Agent SDK and Claude Code compatibility decisions
+
+The reviewed range is Agent SDK `0.3.281..0.3.308`, including its Claude Code
+`2.1.308` runtime. Cyrus applies the following decisions rather than relying on
+source compilation alone:
+
+| Upstream behavior | Cyrus decision and coverage |
+| --- | --- |
+| SDK-supplied MCP servers now win over same-named settings servers. | Adopt. Cyrus merges file configs in configured order and applies inline `mcpConfig` last, then passes one resolved map. `strictMcpConfig` defaults to `true`, so a later user/project settings load cannot replace it; opting out is an explicit operator choice. Existing runner tests cover strict and non-strict modes. |
+| HTTP MCP retries are limited to read-only or idempotent tools. | Adopt the SDK-owned transport behavior. Cyrus does not add a second MCP retry loop or relabel write tools, so ambiguous writes are not duplicated by this integration. |
+| `allowedMcpServers` no longer filters a managed stdio server whose substitutions occur only in `env`. | No Cyrus-specific allowlist interpretation is added. With the default strict MCP map, ambient managed servers are excluded; an operator who opts into ambient configuration receives the upstream managed-policy behavior, including `deniedMcpServers` as the exclusion mechanism. |
+| `claude_code.safety_event` telemetry describes permission, auto-mode, hook and sandbox decisions. | Treat as SDK telemetry only. Cyrus does not translate telemetry into authority. `permissionMode: "default"`, Cyrus tool rules, and `canUseTool` remain the decision boundary; permission-mode tests assert the exact query options. |
+| `sandbox.allowNestedUserNamespaces` is an opt-in that weakens Linux file protections. | Do not enable it. Cyrus passes sandbox settings only when explicitly configured, and the subprocess environment scrub remains disabled pending CYPACK-1108. Existing sandbox requirement/config tests cover the current boundary. |
+| Fork, transcript, hook, background-task and partial-error behavior changed across the range. | Adopt the fixes without changing Cyrus's public contract. The internal Stop hook records both scheduled and background work before declaring a session idle; dedicated lifecycle tests cover that state. Formatter tests cover background-agent events and successful and error partial result envelopes. |
+
+Primary change records: [Agent SDK changelog](https://github.com/anthropics/claude-agent-sdk-typescript/blob/main/CHANGELOG.md), [Claude Code 2.1.305](https://github.com/anthropics/claude-code/releases/tag/v2.1.305), and [Claude Code 2.1.307](https://github.com/anthropics/claude-code/releases/tag/v2.1.307).
+
 ## Session log
 
 1. Started F1 on port 3600 with the fresh fixture repository; `ping` and `status` passed.
@@ -24,6 +41,13 @@
 6. The provider rejected the model turn with `Failed to authenticate. API Error: 401 OAuth access token has expired. Re-authenticate to continue.`
 7. Viewed the paginated session, sent the stop signal, and stopped the server cleanly.
 
+## Runtime identity and reconnect boundary
+
+- Host: macOS 26.5.2 (25F84), Darwin arm64.
+- Runtime: Node.js 22.17.1 and Bun 1.4.2.
+- Stored Claude Code identity: Claude.ai Max account `connor@ceedar.io`, organization `connor@ceedar.io's Organization`.
+- Supported same-identity reconnect: `claude auth login --claudeai --email connor@ceedar.io`, followed by a real request. This interactive account action was not launched unattended.
+
 ## Final retrospective
 
-The local SDK/runtime integration, permission policy, routing, worktree lifecycle, activity rendering, pagination, and shutdown paths passed. Full runtime acceptance remains blocked by the existing Claude OAuth credential being expired server-side: `claude auth status` reports a stored Claude.ai login, but an actual model request rejects it. The account owner must run `claude auth login --claudeai`, verify a real request, and rerun this bounded scenario before the PR is ready. Required completion evidence is successful Read and Bash tool output, final `SDK_RUNTIME_OK`, no error result, and clean stop.
+The local SDK/runtime integration, permission policy, routing, worktree lifecycle, activity rendering, pagination, and shutdown paths passed. Full runtime acceptance remains blocked by the existing Claude OAuth credential being expired server-side: `claude auth status --json` identifies the account above, but an actual model request rejects it. An authorized operator for that same identity must reconnect it and rerun this bounded scenario before the PR is ready. Required completion evidence is a final-head, published-package fixture whose agent successfully reads `package.json`, runs foreground `pwd` with timeout `10000`, completes with `SDK_RUNTIME_OK`, emits no error result, and stops cleanly.

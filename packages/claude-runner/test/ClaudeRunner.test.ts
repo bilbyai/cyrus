@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the Claude SDK
@@ -162,6 +163,48 @@ describe("ClaudeRunner", () => {
 			expect(mockQuery).toHaveBeenCalledWith(
 				expect.objectContaining({
 					options: expect.objectContaining({ strictMcpConfig: false }),
+				}),
+			);
+		});
+
+		it("should apply inline MCP servers after file servers with the same name", async () => {
+			vi.mocked(readFileSync).mockReturnValue(
+				JSON.stringify({
+					mcpServers: {
+						shared: { command: "from-file" },
+						fileOnly: { command: "file-only" },
+					},
+				}),
+			);
+			const runnerWithMcp = new ClaudeRunner({
+				...defaultConfig,
+				mcpConfigPath: "/tmp/mcp.json",
+				mcpConfig: {
+					shared: { command: "from-inline" },
+					inlineOnly: { command: "inline-only" },
+				},
+			});
+			mockQuery.mockImplementation(async function* () {
+				yield {
+					type: "assistant",
+					message: { content: [{ type: "text", text: "Hello!" }] },
+					parent_tool_use_id: null,
+					session_id: "test-session",
+				} as any;
+			});
+
+			await runnerWithMcp.start("test");
+
+			expect(mockQuery).toHaveBeenCalledWith(
+				expect.objectContaining({
+					options: expect.objectContaining({
+						mcpServers: {
+							shared: { command: "from-inline" },
+							fileOnly: { command: "file-only" },
+							inlineOnly: { command: "inline-only" },
+						},
+						strictMcpConfig: true,
+					}),
 				}),
 			);
 		});

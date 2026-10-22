@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Updated `@anthropic-ai/claude-agent-sdk` from `0.3.281` to [`0.3.308`](https://github.com/anthropics/claude-agent-sdk-typescript/blob/main/CHANGELOG.md#03308), bringing Claude sessions to parity with Claude Code 2.1.308 while preserving explicit manual approvals under the SDK's current permission-mode semantics. Updated `@anthropic-ai/sdk` from `^0.128.0` to [`^1.1.0`](https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/sdk-v1.1.0), and added coverage for background-agent work events and partial-error result envelopes. The refreshed Claude allowance registry remains at 30 tools. ([CYPACK-1595](https://linear.app/ceedar/issue/CYPACK-1595/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1553](https://github.com/cyrusagents/cyrus/pull/1553), [cyrus-hosted#1202](https://github.com/cyrusagents/cyrus-hosted/pull/1202))
+
 ## [0.2.74] - 2026-10-21
 
 ### Added

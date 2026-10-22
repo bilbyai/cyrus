@@ -4,6 +4,9 @@ This changelog documents internal development changes, refactors, tooling update
 
 ## [Unreleased]
 
+### Changed
+- Published `cyrus-core@0.2.75-test.0` to the npm `test` channel for Hosted integration, verified its registry integrity and bundled Agent SDK version, and left the `latest` tag unchanged. The F1 runtime path confirmed routing, 30-tool option assembly, default permission mode, activity pagination, and clean shutdown; authenticated Read/Bash acceptance remains blocked by an expired Claude OAuth login. ([CYPACK-1595](https://linear.app/ceedar/issue/CYPACK-1595/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1553](https://github.com/cyrusagents/cyrus/pull/1553), [cyrus-hosted#1202](https://github.com/cyrusagents/cyrus-hosted/pull/1202))
+
 ## [0.2.74] - 2026-10-21
 
 ### Added

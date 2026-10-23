@@ -5,7 +5,7 @@ This changelog documents internal development changes, refactors, tooling update
 ## [Unreleased]
 
 ### Changed
-- Published `cyrus-core@0.2.75-test.3` and `cyrus-claude-runner@0.2.75-test.2` to the npm `test` channel for Hosted integration, verified their registry integrity and bundled Agent SDK version, and left the `latest` tags unchanged. The F1 runtime path confirmed routing, 30-tool option assembly, default permission mode, activity pagination, and clean shutdown; authenticated Read/Bash acceptance remains blocked by an expired Claude OAuth login. ([CYPACK-1596](https://linear.app/ceedar/issue/CYPACK-1596/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [cyrus#1554](https://github.com/cyrusagents/cyrus/pull/1554), [cyrus-hosted#1214](https://github.com/cyrusagents/cyrus-hosted/pull/1214))
+- Published `cyrus-core@0.2.75-test.3` and `cyrus-claude-runner@0.2.75-test.2` to the npm `test` channel for Hosted integration, verified their registry integrity and bundled Agent SDK version, and left the `latest` tags unchanged. The F1 runtime path confirmed routing, 30-tool option assembly, default permission mode, activity pagination, and clean shutdown; after the same-user OAuth reconnect, a fresh published-package fixture resolved API SDK 1.2.0 and passed authenticated Read/Bash, exact `SDK_RUNTIME_OK`, no-error-result, and clean-stop acceptance. ([CYPACK-1596](https://linear.app/ceedar/issue/CYPACK-1596/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [cyrus#1554](https://github.com/cyrusagents/cyrus/pull/1554), [cyrus-hosted#1214](https://github.com/cyrusagents/cyrus-hosted/pull/1214))
 
 ## [0.2.74] - 2026-10-21
 

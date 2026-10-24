@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
-- The Cyrus Inbox plugin now uses Cyrus's single `cyrus.event` MCP event (scope `cyrus:events`): inbox messages arrive with `data.subtype: "cyrus.message.created"`, and workspace admins can also monitor Linear, GitHub, Slack, Resend, GitLab and Jira events listed by `list_event_subtypes`. Requires the matching Cyrus Hosted release; existing connections must disconnect, connect again and resubscribe. `post_message_to_codex` is unchanged.
+- The Cyrus Inbox plugin now uses Cyrus's single `cyrus.event` MCP event (scope `cyrus:events`): inbox messages arrive with `data.subtype: "cyrus.message.created"`, and workspace admins can also monitor Linear, GitHub, Slack, Resend, GitLab and Jira events listed by `list_event_subtypes`. Requires the matching Cyrus Hosted release; existing connections must disconnect, connect again and resubscribe. `post_message_to_codex` is unchanged. ([#1558](https://github.com/cyrusagents/cyrus/pull/1558))
 
 ### Security
 - Updated Fastify to `5.12.7` across the CLI dependency graph, fixing a header-schema validation bypass and restoring a zero-advisory audit. ([CYPACK-1597](https://linear.app/ceedar/issue/CYPACK-1597/address-open-security-patches-for-cyrus-cli), [#1555](https://github.com/cyrusagents/cyrus/pull/1555))

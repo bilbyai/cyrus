@@ -98,7 +98,7 @@ importers:
         specifier: ^10.0.0
         version: 10.2.0
       zod:
-        specifier: ^4.6.7
+        specifier: ^4.3.5
         version: 4.6.7
     devDependencies:
       '@types/node':
@@ -166,7 +166,7 @@ importers:
         specifier: ^11.3.2
         version: 11.3.4
       zod:
-        specifier: ^4.6.7
+        specifier: ^4.3.6
         version: 4.6.7
     devDependencies:
       '@types/fs-extra':
@@ -238,7 +238,7 @@ importers:
         specifier: ^5.12.7
         version: 5.12.7
       zod:
-        specifier: ^4.6.7
+        specifier: ^4.3.6
         version: 4.6.7
     devDependencies:
       '@types/node':
@@ -260,7 +260,7 @@ importers:
         specifier: ^64.0.0
         version: 64.0.0(encoding@0.1.13)
       zod:
-        specifier: ^4.6.7
+        specifier: ^4.3.6
         version: 4.6.7
     devDependencies:
       '@types/node':
@@ -422,7 +422,7 @@ importers:
         specifier: ^11.3.0
         version: 11.3.4
       zod:
-        specifier: ^4.6.7
+        specifier: ^4.3.6
         version: 4.6.7
     devDependencies:
       '@types/fs-extra':
@@ -513,7 +513,7 @@ importers:
         specifier: ^6.9.1
         version: 6.35.0(ws@8.21.0)(zod@4.6.7)
       zod:
-        specifier: ^4.6.7
+        specifier: ^4.3.5
         version: 4.6.7
     devDependencies:
       '@types/fs-extra':

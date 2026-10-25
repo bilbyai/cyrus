@@ -77,12 +77,16 @@ npm cache were then removed.
   missing authenticated model turn.
 - **Cursor SDK 1.0.40 / scalar `local.cwd`:** coordinated with the sole
   CYPACK-1599/#1559 owner and did not duplicate its repair or drive. Its runtime
-  source head `8c55681b39a75431904785e96f3b03a75daedb3e` reached the selected DEF-1
-  worktree using Cursor SDK 1.0.40, then both create and continuation were
-  blocked by `EPERM` creating the Cursor SDK agent store under
-  `/Users/agentops/.cursor/projects/...`; no provider receipt or marker exists.
-  Stop, hook removal, server shutdown, and port cleanup passed. The committed
-  evidence is [CYPACK-1599's Cursor runtime report](https://github.com/cyrusagents/cyrus/blob/36db48134ad63162780cea39f26d7cd1f94baeec/apps/f1/test-drives/2026-10-25-cypack-1599-cursor-sdk-runtime.md).
+  product commit `fcc0a7ac6c26e5d38ab4d7406128c16323572c4b` opens and reuses an explicit
+  workspace-local SQLite agent store. The coordinated drive reached the
+  selected DEF-1 worktree and created `index.db`, resolving the prior
+  `~/.cursor` `EPERM` without changing sandbox or authentication policy.
+  `Agent.create` then reached `GET /v1/models`, where the unchanged
+  `CURSOR_API_KEY` returned `401 Invalid User API Key`; because create returned
+  no SDK agent, continuation reopened the same store but could not resume the
+  placeholder session. No provider tool/result receipt or marker exists. Stop,
+  hook removal, server shutdown, and port cleanup passed. The committed evidence
+  at current head `26c6c9fb` is [CYPACK-1599's Cursor runtime report](https://github.com/cyrusagents/cyrus/blob/26c6c9fb/apps/f1/test-drives/2026-10-25-cypack-1599-cursor-sdk-runtime.md).
 
 ## Conclusion
 

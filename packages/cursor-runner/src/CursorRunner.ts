@@ -22,6 +22,7 @@ import type {
 	SDKThinkingMessage as CursorSDKThinkingMessage,
 	SDKToolUseMessage as CursorSDKToolUseMessage,
 	SDKUserMessageEvent as CursorSDKUserMessageEvent,
+	LocalAgentStore,
 	Run,
 	SDKAgent,
 } from "@cursor/sdk";
@@ -468,6 +469,8 @@ export class CursorRunner extends EventEmitter implements IAgentRunner {
 		this.setupLogging(initialSessionId);
 
 		const workspace = resolve(this.config.workingDirectory || cwd());
+		let localStore: (LocalAgentStore & { dispose(): Promise<void> }) | null =
+			null;
 
 		try {
 			this.installPermissionsArtifacts(workspace);
@@ -486,6 +489,19 @@ export class CursorRunner extends EventEmitter implements IAgentRunner {
 			const apiKey = this.config.cursorApiKey ?? process.env.CURSOR_API_KEY;
 			const normalizedModel = normalizeCursorModel(this.config.model);
 			const mcpServers = mapCyrusMcpToSdk(this.config.mcpConfig);
+			const stateRoot = join(
+				this.config.cyrusHome,
+				"cursor-sdk-state",
+				crypto.createHash("sha256").update(workspace).digest("hex"),
+			);
+			const { SqliteLocalAgentStore } = await import("@cursor/sdk/sqlite");
+			localStore = await SqliteLocalAgentStore.open({
+				workspaceRef: workspace,
+				stateRoot,
+			});
+			console.log(
+				`[CursorRunner] Opened Cursor SDK state store at ${stateRoot}`,
+			);
 
 			const sandboxEnabled = Boolean(this.config.sandboxSettings?.enabled);
 			const baseAgentOptions = {
@@ -493,6 +509,7 @@ export class CursorRunner extends EventEmitter implements IAgentRunner {
 				...(normalizedModel ? { model: { id: normalizedModel } } : {}),
 				local: {
 					cwd: workspace,
+					store: localStore,
 					settingSources: ["project" as const],
 					// SDK ≥1.0.11 auto-discovers the bundled `cursorsandbox`
 					// helper from the platform-specific optionalDependency
@@ -572,6 +589,16 @@ export class CursorRunner extends EventEmitter implements IAgentRunner {
 			this.finalizeSession(caughtError);
 		} catch (error) {
 			this.finalizeSession(error);
+		} finally {
+			if (localStore) {
+				try {
+					await localStore.dispose();
+				} catch (error) {
+					console.warn(
+						`[CursorRunner] Failed to close Cursor SDK state store: ${normalizeError(error)}`,
+					);
+				}
+			}
 		}
 
 		return this.sessionInfo;

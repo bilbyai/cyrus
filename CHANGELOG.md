@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Moved the Cyrus Inbox plugin package to a separately maintained private repository. The CLI, runtime and `post_message_to_codex` tool are unchanged. ([#1558](https://github.com/cyrusagents/cyrus/pull/1558))
 
+### Fixed
+- Store Cursor SDK session state under the Cyrus home directory so create and resume work without requiring access to the global `~/.cursor` directory. ([CYPACK-1599](https://linear.app/ceedar/issue/CYPACK-1599/address-open-security-patches-for-cyrus-cli), [#1559](https://github.com/cyrusagents/cyrus/pull/1559))
+
 ### Security
 - Patched high-severity Zod collection-validation and body-parser compressed-body denial-of-service vulnerabilities, plus fast-uri URL normalization issues, while removing the now-redundant body-parser override and restoring a zero-advisory audit. ([CYPACK-1599](https://linear.app/ceedar/issue/CYPACK-1599/address-open-security-patches-for-cyrus-cli), [#1559](https://github.com/cyrusagents/cyrus/pull/1559))
 - Updated Fastify to `5.12.7` across the CLI dependency graph, fixing a header-schema validation bypass and restoring a zero-advisory audit. ([CYPACK-1597](https://linear.app/ceedar/issue/CYPACK-1597/address-open-security-patches-for-cyrus-cli), [#1555](https://github.com/cyrusagents/cyrus/pull/1555))

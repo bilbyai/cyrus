@@ -6,6 +6,7 @@ This changelog documents internal development changes, refactors, tooling update
 
 ### Changed
 - Published `cyrus-claude-runner@0.2.75-test.6` and `cyrus-core@0.2.75-test.6` to the npm `test` channel for Hosted integration without moving either package's `latest` tag. Deprecated the unusable runner `.5` prerelease after its workspace dependency resolved to unpublished `cyrus-core@0.2.74`. ([CYPACK-1601](https://linear.app/ceedar/issue/CYPACK-1601/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1561](https://github.com/cyrusagents/cyrus/pull/1561), [cyrus-hosted#1235](https://github.com/cyrusagents/cyrus-hosted/pull/1235))
+- Preserved the reviewed SDK compatibility decisions for permissions, sandboxing, task/tool-result ordering, `Monitor`, foreground commands, MCP elicitation, and telemetry. PR #1561 is explicitly merge-blocked until CYPACK-1599/#1559's owned Cursor 1.0.40 store fix lands first and #1561 is reconciled with it; the fix is not duplicated here. ([CYPACK-1601](https://linear.app/ceedar/issue/CYPACK-1601/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1561](https://github.com/cyrusagents/cyrus/pull/1561), [CYPACK-1599](https://linear.app/ceedar/issue/CYPACK-1599/address-open-security-patches-for-cyrus-cli), [#1559](https://github.com/cyrusagents/cyrus/pull/1559))
 
 ## [0.2.74] - 2026-10-21
 

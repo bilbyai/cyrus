@@ -5,7 +5,7 @@ This changelog documents internal development changes, refactors, tooling update
 ## [Unreleased]
 
 ### Changed
-- Published `cyrus-claude-runner@0.2.75-test.5` and `cyrus-core@0.2.75-test.6` to the npm `test` channel for Hosted integration without moving either package's `latest` tag. ([CYPACK-1601](https://linear.app/ceedar/issue/CYPACK-1601/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1561](https://github.com/cyrusagents/cyrus/pull/1561), [cyrus-hosted#1235](https://github.com/cyrusagents/cyrus-hosted/pull/1235))
+- Published `cyrus-claude-runner@0.2.75-test.6` and `cyrus-core@0.2.75-test.6` to the npm `test` channel for Hosted integration without moving either package's `latest` tag. Deprecated the unusable runner `.5` prerelease after its workspace dependency resolved to unpublished `cyrus-core@0.2.74`. ([CYPACK-1601](https://linear.app/ceedar/issue/CYPACK-1601/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1561](https://github.com/cyrusagents/cyrus/pull/1561), [cyrus-hosted#1235](https://github.com/cyrusagents/cyrus-hosted/pull/1235))
 
 ## [0.2.74] - 2026-10-21
 

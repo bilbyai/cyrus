@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - Moved the Cyrus Inbox plugin package to a separately maintained private repository. The CLI, runtime and `post_message_to_codex` tool are unchanged. ([#1558](https://github.com/cyrusagents/cyrus/pull/1558))
+- Updated `@anthropic-ai/claude-agent-sdk` from `0.3.281` to [`0.3.310`](https://github.com/anthropics/claude-agent-sdk-typescript/blob/main/CHANGELOG.md#03310), bringing Claude sessions to parity with Claude Code 2.1.310 while preserving Cyrus's explicit manual-approval behavior under the current permission-mode semantics. Updated `@anthropic-ai/sdk` from `^0.128.0` to latest [`^1.3.0`](https://github.com/anthropics/anthropic-sdk-typescript/releases/tag/sdk-v1.3.0). The refreshed Claude allowance registry remains at 30 tools. ([CYPACK-1601](https://linear.app/ceedar/issue/CYPACK-1601/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1561](https://github.com/cyrusagents/cyrus/pull/1561), [cyrus-hosted#1235](https://github.com/cyrusagents/cyrus-hosted/pull/1235))
 
 ### Security
 - Updated Fastify to `5.12.7` across the CLI dependency graph, fixing a header-schema validation bypass and restoring a zero-advisory audit. ([CYPACK-1597](https://linear.app/ceedar/issue/CYPACK-1597/address-open-security-patches-for-cyrus-cli), [#1555](https://github.com/cyrusagents/cyrus/pull/1555))

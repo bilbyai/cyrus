@@ -35,6 +35,7 @@ describe("Cyrus permission policy", () => {
 		["Bedrock", { CLAUDE_CODE_USE_BEDROCK: "1" }],
 		["Vertex", { CLAUDE_CODE_USE_VERTEX: "1" }],
 		["Foundry", { CLAUDE_CODE_USE_FOUNDRY: "1" }],
+		["Mantle", { CLAUDE_CODE_USE_MANTLE: "1" }],
 		["telemetry disabled", { DISABLE_TELEMETRY: "1" }],
 		["do not track", { DO_NOT_TRACK: "1" }],
 	] as const)("keeps default mode for %s, including settings defaultMode", async (_label, env) => {
@@ -93,6 +94,48 @@ describe("Cyrus permission policy", () => {
 		expect(JSON.parse(readFileSync(settingsPath, "utf8"))).toEqual({
 			permissions: { defaultMode: "auto" },
 		});
+	});
+
+	it.each([
+		["Bedrock", { CLAUDE_CODE_USE_BEDROCK: "1" }],
+		["Vertex", { CLAUDE_CODE_USE_VERTEX: "1" }],
+		["Foundry", { CLAUDE_CODE_USE_FOUNDRY: "1" }],
+		["Mantle", { CLAUDE_CODE_USE_MANTLE: "1" }],
+	] as const)("preserves custom model, fallback, and hook policy for %s", async (_label, providerEnv) => {
+		const root = mkdtempSync(join(tmpdir(), "cyrus-provider-policy-"));
+		roots.push(root);
+		vi.mocked(query).mockImplementation(
+			async function* () {} as unknown as typeof query,
+		);
+		const promptHook = vi.fn(async () => ({}));
+		const runner = new ClaudeRunner({
+			workingDirectory: root,
+			cyrusHome: root,
+			model: "custom-deployment-opus",
+			fallbackModel: "fallback-deployment-sonnet",
+			additionalEnv: { ...providerEnv },
+			hooks: {
+				UserPromptSubmit: [
+					{ matcher: ".*", hooks: [promptHook], timeout: 0.25 },
+				],
+			},
+		});
+
+		await runner.start("Check provider policy");
+		const options = vi.mocked(query).mock.calls[0]?.[0].options;
+		expect(options).toMatchObject({
+			model: "custom-deployment-opus",
+			fallbackModel: "fallback-deployment-sonnet",
+			permissionMode: "default",
+			env: providerEnv,
+		});
+		expect(options?.env).not.toHaveProperty("CLAUDE_CODE_SIMPLE_SYSTEM_PROMPT");
+		expect(options?.env).not.toHaveProperty(
+			"CLAUDE_CODE_DISABLE_REFUSAL_FALLBACK",
+		);
+		expect(options?.hooks?.UserPromptSubmit).toEqual([
+			{ matcher: ".*", hooks: [promptHook], timeout: 0.25 },
+		]);
 	});
 });
 

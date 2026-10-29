@@ -155,14 +155,38 @@ export class SharedApplicationServer {
 		return new Promise<void>((resolve, reject) => {
 			let connectionCount = 0;
 			const requiredConnections = 4;
+			let settled = false;
+			let startupTimeout: NodeJS.Timeout | null = null;
 
-			this.tunnelClient = new CloudflareTunnelClient(
+			const tunnelClient = new CloudflareTunnelClient(
 				cloudflareToken,
 				this.port,
 			);
+			this.tunnelClient = tunnelClient;
+
+			const succeed = () => {
+				if (settled) return;
+				settled = true;
+				if (startupTimeout) clearTimeout(startupTimeout);
+				resolve();
+			};
+			// Startup failed: stop the client so its cloudflared child is killed
+			// and it never attempts post-start recovery
+			const fail = (error: Error) => {
+				if (settled) return;
+				settled = true;
+				if (startupTimeout) clearTimeout(startupTimeout);
+				tunnelClient.disconnect();
+				if (this.tunnelClient === tunnelClient) {
+					this.tunnelClient = null;
+				}
+				reject(error);
+			};
 
 			// Listen for connection events (Cloudflare establishes 4 connections per tunnel)
-			this.tunnelClient.on("connected", () => {
+			tunnelClient.on("connected", () => {
+				// After startup, reconnections are logged by the tunnel client
+				if (settled) return;
 				connectionCount++;
 				this.logger.info(
 					`Cloudflare tunnel connection ${connectionCount}/${requiredConnections} established`,
@@ -170,40 +194,48 @@ export class SharedApplicationServer {
 
 				if (connectionCount === requiredConnections) {
 					this.logger.info("Cloudflare tunnel fully connected and ready");
-					resolve();
+					succeed();
 				}
 			});
 
 			// Listen for ready event to get tunnel URL
-			this.tunnelClient.on("ready", (tunnelUrl: string) => {
+			tunnelClient.on("ready", (tunnelUrl: string) => {
 				this.logger.info(`Cloudflare tunnel URL: ${tunnelUrl}`);
 			});
 
 			// Listen for error events
-			this.tunnelClient.on("error", (error: Error) => {
+			tunnelClient.on("error", (error: Error) => {
 				this.logger.error("Cloudflare tunnel error:", error);
-				reject(error);
+				fail(error);
 			});
 
-			// Listen for disconnect events
-			this.tunnelClient.on("disconnect", (reason: string) => {
+			// Listen for disconnect events. Unexpected post-start exits are
+			// restarted by the tunnel client itself with bounded backoff.
+			tunnelClient.on("disconnect", (reason: string) => {
 				this.logger.info(`Cloudflare tunnel disconnected: ${reason}`);
+				// A restarted child must establish its own connections
+				if (!settled) connectionCount = 0;
+			});
+
+			// Reconnection after an unexpected post-start exit
+			tunnelClient.on("connect", () => {
+				if (settled) {
+					this.logger.info("Cloudflare tunnel reconnected");
+				}
 			});
 
 			// Start the tunnel
-			this.tunnelClient.startTunnel().catch(reject);
+			tunnelClient.startTunnel().catch(fail);
 
 			// Timeout after 120 seconds (slow DNS resolvers can delay cloudflared
 			// connection registration past 30s, e.g. on cloud Macs with dead
 			// IPv6 nameservers ahead of the working resolver)
-			setTimeout(() => {
-				if (connectionCount < requiredConnections) {
-					reject(
-						new Error(
-							`Timeout waiting for Cloudflare tunnel (${connectionCount}/${requiredConnections} connections). This is usually caused by firewall/VPN/proxy blocking cloudflared. See troubleshooting: https://github.com/ceedaragents/cyrus/blob/main/docs/CLOUDFLARE_TUNNEL.md#troubleshooting`,
-						),
-					);
-				}
+			startupTimeout = setTimeout(() => {
+				fail(
+					new Error(
+						`Timeout waiting for Cloudflare tunnel (${connectionCount}/${requiredConnections} connections). This is usually caused by firewall/VPN/proxy blocking cloudflared. See troubleshooting: https://github.com/ceedaragents/cyrus/blob/main/docs/CLOUDFLARE_TUNNEL.md#troubleshooting`,
+					),
+				);
 			}, 120000);
 		});
 	}

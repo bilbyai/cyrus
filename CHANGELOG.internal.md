@@ -5,8 +5,8 @@ This changelog documents internal development changes, refactors, tooling update
 ## [Unreleased]
 
 ### Changed
-- Published the reconciled `cyrus-core@0.2.75-test.9` and `cyrus-claude-runner@0.2.75-test.9` pair to the npm `test` channel for Hosted integration without moving either package's `latest` tag. ([CYPACK-1605](https://linear.app/ceedar/issue/CYPACK-1605/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest))
-- Extended the Anthropic SDK compatibility review through Agent SDK `0.3.312`, preserved the prior permission, sandbox, foreground-command, MCP, telemetry, and task lifecycle dispositions, and retained the final-package provider acceptance gate after reconciling CYPACK-1603's owned Cursor store fix. ([CYPACK-1605](https://linear.app/ceedar/issue/CYPACK-1605/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [CYPACK-1603](https://linear.app/ceedar/issue/CYPACK-1603), [#1563](https://github.com/cyrusagents/cyrus/pull/1563))
+- Published the reconciled `cyrus-core@0.2.75-test.9` and `cyrus-claude-runner@0.2.75-test.9` pair to the npm `test` channel for Hosted integration without moving either package's `latest` tag. ([CYPACK-1605](https://linear.app/ceedar/issue/CYPACK-1605/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1565](https://github.com/cyrusagents/cyrus/pull/1565), [cyrus-hosted#1270](https://github.com/cyrusagents/cyrus-hosted/pull/1270))
+- Extended the Anthropic SDK compatibility review through Agent SDK `0.3.312`, preserved the prior permission, sandbox, foreground-command, MCP, telemetry, and task lifecycle dispositions, and retained the final-package provider acceptance gate after reconciling CYPACK-1603's owned Cursor store fix. ([CYPACK-1605](https://linear.app/ceedar/issue/CYPACK-1605/update-anthropic-aiclaude-agent-sdk-and-anthropic-aisdk-to-the-latest), [#1565](https://github.com/cyrusagents/cyrus/pull/1565), [CYPACK-1603](https://linear.app/ceedar/issue/CYPACK-1603), [#1563](https://github.com/cyrusagents/cyrus/pull/1563))
 
 ## [0.2.74] - 2026-10-21
 

@@ -1277,7 +1277,12 @@ export class EdgeWorker extends EventEmitter {
 		const slackAdapter = new SlackChatAdapter(
 			chatRepositoryProvider,
 			this.logger,
-			{ repositoryRoutingContext: routingContext, cyrusAppBaseUrl },
+			{
+				repositoryRoutingContext: routingContext,
+				cyrusAppBaseUrl,
+				// Live read so a hot-reloaded `agentName` applies to the next session.
+				getAgentName: () => this.config.agentName,
+			},
 		);
 
 		if (

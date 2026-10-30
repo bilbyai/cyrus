@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- New `agentName` setting for teams whose Slack app has its own name. In Slack, the agent now answers when addressed by that name instead of "Cyrus". Defaults to "Cyrus".
+
 ### Changed
 - Moved the Cyrus Inbox plugin package to a separately maintained private repository. The CLI, runtime and `post_message_to_codex` tool are unchanged. ([#1558](https://github.com/cyrusagents/cyrus/pull/1558))
 

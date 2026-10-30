@@ -577,6 +577,13 @@ export const EdgeConfigSchema = z.object({
 	slackThreadFollowing: z.boolean().optional(),
 
 	/**
+	 * Name the agent answers to in chat platforms (e.g. "Dingo, …" in Slack).
+	 * Set this when the Slack app is named something other than Cyrus.
+	 * Defaults to "Cyrus".
+	 */
+	agentName: z.string().optional(),
+
+	/**
 	 * Whether to trigger agent sessions when a pull request review requests changes.
 	 * When disabled, a `pull_request_review` event produces no acknowledgement comment
 	 * and no agent session. Defaults to true if not specified.

@@ -548,6 +548,18 @@ in progress. Removing the field restores `workspace-write` for new runners.
 Selecting `read-only` or full access takes precedence over a generated filesystem
 profile and uses the corresponding native Codex mode.
 
+---
+
+### `agentName` (string)
+
+The name the agent answers to in Slack, as in "Dingo, can you check this?". Set it when your Slack app is named something other than Cyrus. Defaults to `"Cyrus"`. Changes apply to new Slack sessions without a restart.
+
+```json
+{
+  "agentName": "Dingo"
+}
+```
+
 
 ## Tool Configuration Priority
 

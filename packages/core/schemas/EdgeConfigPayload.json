@@ -665,6 +665,9 @@
 		"slackThreadFollowing": {
 			"type": "boolean"
 		},
+		"agentName": {
+			"type": "string"
+		},
 		"prReviewTrigger": {
 			"type": "boolean"
 		},

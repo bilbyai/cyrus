@@ -47,6 +47,9 @@ const THREAD_CONTEXT_MESSAGE_LIMIT = 50;
  */
 const THREAD_CATCHUP_SCAN_LIMIT = 2000;
 
+/** Name the agent answers to in Slack when `agentName` is not configured. */
+export const DEFAULT_AGENT_NAME = "Cyrus";
+
 /** Reaction added when a message is received and queued for processing (👀) */
 export const RECEIPT_REACTION = "eyes";
 
@@ -68,6 +71,7 @@ export class SlackChatAdapter
 	private repositoryRoutingContext: string;
 	private behavioursPageUrl: string;
 	private getAccessControl: () => SlackAccessControlConfig | undefined;
+	private getAgentName: () => string | undefined;
 	private logger: ILogger;
 	private selfBotId: string | undefined;
 	/** Slack user ID → email, so access checks don't call users.info every message. */
@@ -88,6 +92,11 @@ export class SlackChatAdapter
 			cyrusAppBaseUrl?: string;
 			/** Live read of the `slackAccessControl` config. */
 			getAccessControl?: () => SlackAccessControlConfig | undefined;
+			/**
+			 * Live read of the name the agent answers to (config `agentName`).
+			 * Falls back to DEFAULT_AGENT_NAME when it returns nothing.
+			 */
+			getAgentName?: () => string | undefined;
 		},
 	) {
 		this.repositoryProvider = repositoryProvider;
@@ -98,6 +107,7 @@ export class SlackChatAdapter
 			? `${appBaseUrl}${BEHAVIOURS_PAGE_ROUTE}`
 			: "";
 		this.getAccessControl = options?.getAccessControl ?? (() => undefined);
+		this.getAgentName = options?.getAgentName ?? (() => undefined);
 		this.logger = logger ?? createLogger({ component: "SlackChatAdapter" });
 	}
 
@@ -235,6 +245,7 @@ export class SlackChatAdapter
 	}
 
 	buildSystemPrompt(event: SlackWebhookEvent): string {
+		const agentName = this.getAgentName()?.trim() || DEFAULT_AGENT_NAME;
 		const repositoryPaths = Array.from(
 			new Set(this.repositoryProvider.getRepositoryPaths().filter(Boolean)),
 		).sort();
@@ -261,12 +272,13 @@ ${repositoryPaths.map((path) => `- ${path}`).join("\n")}
 ## Stopping Automatic Listening
 - If the user asks you to stop listening to, following, or responding in this thread:
   - Tell them automatic thread listening can be turned off on the Behaviours page: <${this.behavioursPageUrl}|Behaviours page>.
-  - From that point on, treat this thread as muted: stay silent (emit \`${SLACK_NO_RESPONSE_SENTINEL}\` and nothing else) for every subsequent message until someone asks you a direct question — addressing you by name ("Cyrus, …") or with an @mention. When you resume responding, just answer — do not announce that you are listening again.`
+  - From that point on, treat this thread as muted: stay silent (emit \`${SLACK_NO_RESPONSE_SENTINEL}\` and nothing else) for every subsequent message until someone asks you a direct question — addressing you by name ("${agentName}, …") or with an @mention. When you resume responding, just answer — do not announce that you are listening again.`
 			: "";
 
 		return `You are participating in a Slack thread.
 
 ## Context
+- **Your name**: ${agentName}
 - **Requested by**: ${event.payload.user}
 - **Channel**: ${event.payload.channel}
 
@@ -274,7 +286,7 @@ ${repositoryPaths.map((path) => `- ${path}`).join("\n")}
 - After you are first @mentioned, you receive **every** subsequent message in this thread, not just the ones aimed at you. Do not treat every message as a request for you.
 - Respond ONLY when at least one of these is true:
   1. The message asks a question you can genuinely and helpfully answer, OR
-  2. Someone addresses you directly — by name ("Cyrus, …") or with an @mention.
+  2. Someone addresses you directly — by name ("${agentName}, …") or with an @mention.
 - For anything else — side conversation between people, acknowledgements ("thanks", "👍"), status chatter, or messages clearly not directed at you — do NOT reply.
 - When you should stay silent, output exactly \`${SLACK_NO_RESPONSE_SENTINEL}\` and nothing else — no reasoning, no explanation, not a single word before or after the token.
 - NEVER narrate your decision about whether to respond. Your entire output is posted verbatim to the thread — there is no private scratchpad. Thoughts like "the user didn't address me by name, so I should stay quiet" or "they addressed me by name, so I'm listening again" must never appear in your output. Either emit the bare token, or reply directly to the user's message as if the decision never happened.

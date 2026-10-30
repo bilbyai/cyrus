@@ -61,6 +61,7 @@ const RELOAD_MERGED_KEYS = [
 	"maxConcurrentSessions",
 	"slackThreadFollowing",
 	"slackAccessControl",
+	"agentName",
 	"prReviewTrigger",
 	"userAccessControl",
 	"sandbox",
@@ -373,6 +374,7 @@ export class ConfigManager extends EventEmitter {
 				// otherwise keep current or default to true
 				slackThreadFollowing:
 					parsedConfig.slackThreadFollowing ?? this.config.slackThreadFollowing,
+				agentName: parsedConfig.agentName ?? this.config.agentName,
 				// PR review trigger: use parsed value if explicitly set,
 				// otherwise keep current or default to true
 				prReviewTrigger:

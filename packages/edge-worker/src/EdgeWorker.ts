@@ -1282,6 +1282,8 @@ export class EdgeWorker extends EventEmitter {
 				cyrusAppBaseUrl,
 				// Live read so access list changes apply to the next message.
 				getAccessControl: () => this.config.slackAccessControl,
+				// Live read so a hot-reloaded `agentName` applies to the next session.
+				getAgentName: () => this.config.agentName,
 			},
 		);
 

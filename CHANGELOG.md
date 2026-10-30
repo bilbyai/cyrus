@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - New `slackAccessControl` setting limits who can use the agent in Slack, by email domain, allowed users, and blocked users. Refused users are ignored, or get a short reply if you set `blockBehavior` to `"reply"`. See [Slack Access Control](docs/CONFIG_FILE.md#slack-access-control).
 - You can now message the agent directly in Slack. A direct message starts a session like an @mention does, and the agent replies in a thread under it. Direct messages work even when thread following is turned off. The Slack app needs the `message.im` event and `im:history` scope, which the default manifest already includes.
+- New `agentName` setting for teams whose Slack app has its own name. In Slack, the agent now answers when addressed by that name instead of "Cyrus". Defaults to "Cyrus".
 
 ### Changed
 - Moved the Cyrus Inbox plugin package to a separately maintained private repository. The CLI, runtime and `post_message_to_codex` tool are unchanged. ([#1558](https://github.com/cyrusagents/cyrus/pull/1558))

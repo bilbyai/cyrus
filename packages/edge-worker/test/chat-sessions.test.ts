@@ -803,6 +803,23 @@ describe("SlackChatAdapter responding policy", () => {
 		expect(prompt).toContain(SLACK_NO_RESPONSE_SENTINEL);
 	});
 
+	it("answers to Cyrus by default", () => {
+		const adapter = new SlackChatAdapter(createStaticProvider([]));
+		const prompt = adapter.buildSystemPrompt(slackEvent("anything"));
+		expect(prompt).toContain("- **Your name**: Cyrus");
+		expect(prompt).toContain('by name ("Cyrus, …")');
+	});
+
+	it("answers to the configured agent name", () => {
+		const adapter = new SlackChatAdapter(createStaticProvider([]), undefined, {
+			getAgentName: () => "Dingo",
+		});
+		const prompt = adapter.buildSystemPrompt(slackEvent("anything"));
+		expect(prompt).toContain("- **Your name**: Dingo");
+		expect(prompt).toContain('by name ("Dingo, …")');
+		expect(prompt).not.toContain('"Cyrus, …"');
+	});
+
 	it("does NOT post to Slack when the agent emits the no-response sentinel", async () => {
 		const adapter = new SlackChatAdapter(createStaticProvider([]));
 		const postSpy = vi

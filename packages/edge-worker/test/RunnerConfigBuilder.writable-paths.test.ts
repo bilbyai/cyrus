@@ -38,6 +38,7 @@ function build(opts: {
 	runnerType: "claude" | "codex";
 	allowedTools: string[];
 	sandboxEnabled: boolean;
+	allowedDirectories?: string[];
 }) {
 	const { config } = makeBuilder(opts.runnerType).buildIssueConfig({
 		session: {
@@ -54,7 +55,7 @@ function build(opts: {
 		sessionId: "sess-1",
 		systemPrompt: "test",
 		allowedTools: opts.allowedTools,
-		allowedDirectories: ["/repos/repo-a"],
+		allowedDirectories: opts.allowedDirectories ?? ["/repos/repo-a"],
 		disallowedTools: [],
 		cyrusHome: "/tmp/cyrus-home",
 		linearWorkspaceId: "ws-1",
@@ -91,6 +92,28 @@ describe("RunnerConfigBuilder sandbox writable paths", () => {
 			"Write(**)",
 			"Edit(//home/me/.supabase/**)",
 			"Write(//home/me/.supabase/**)",
+		]);
+	});
+
+	it("Claude + sandbox: a main checkout is not readable when its .git is", () => {
+		const config = build({
+			runnerType: "claude",
+			allowedTools: ["Read(**)"],
+			sandboxEnabled: true,
+			allowedDirectories: [
+				"/cyrus/ABC-1/attachments",
+				"/repos/repo-a",
+				"/repos/repo-a/.git/worktrees/ABC-1",
+				"/repos/repo-a/.git",
+			],
+		});
+
+		expect(config.sandbox.filesystem.allowRead).toEqual([
+			".",
+			"/cyrus/ABC-1/attachments",
+			"/repos/repo-a/.git/worktrees/ABC-1",
+			"/repos/repo-a/.git",
+			"/home/me/.supabase",
 		]);
 	});
 

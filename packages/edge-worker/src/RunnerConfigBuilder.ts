@@ -220,6 +220,17 @@ export function resolveIssueMcpConfigPath(
 }
 
 /**
+ * Drop main checkouts whose `.git` is also allowed. On Linux the sandbox
+ * mounts `allowRead` paths read-only on top of the writable ones, so a main
+ * checkout would hide the `.git` Claude Code makes writable for worktree
+ * commits, and every command would fail to start. The worktree already
+ * has the files.
+ */
+function readableDirectories(directories: string[]): string[] {
+	return directories.filter((dir) => !directories.includes(join(dir, ".git")));
+}
+
+/**
  * Shared runner config assembly for both issue and chat sessions.
  *
  * Eliminates duplication between EdgeWorker.buildAgentRunnerConfig() and
@@ -648,7 +659,7 @@ export class RunnerConfigBuilder {
 					// also readable, carving them out of the `~/` deny.
 					allowRead: [
 						".",
-						...input.allowedDirectories,
+						...readableDirectories(input.allowedDirectories),
 						...(input.sandboxWritablePaths ?? []),
 					],
 					denyRead: ["~/"],

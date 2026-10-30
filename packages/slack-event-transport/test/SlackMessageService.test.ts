@@ -390,4 +390,44 @@ describe("SlackMessageService", () => {
 			);
 		});
 	});
+
+	describe("getUserEmail", () => {
+		it("returns the user's email from users.info", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({
+					ok: true,
+					user: { profile: { email: "ana@example.com" } },
+				}),
+			});
+
+			const email = await service.getUserEmail("xoxb-test", "U1");
+
+			expect(email).toBe("ana@example.com");
+			expect(mockFetch).toHaveBeenCalledWith(
+				"https://slack.com/api/users.info?user=U1",
+				{ method: "GET", headers: { Authorization: "Bearer xoxb-test" } },
+			);
+		});
+
+		it("returns undefined for a user without an email", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({ ok: true, user: { profile: {} } }),
+			});
+
+			expect(await service.getUserEmail("xoxb-test", "U1")).toBeUndefined();
+		});
+
+		it("throws on Slack API error (HTTP 200 with ok: false)", async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: async () => ({ ok: false, error: "missing_scope" }),
+			});
+
+			await expect(service.getUserEmail("xoxb-test", "U1")).rejects.toThrow(
+				"missing_scope",
+			);
+		});
+	});
 });

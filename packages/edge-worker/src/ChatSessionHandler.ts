@@ -32,6 +32,15 @@ export interface ChatPlatformAdapter<TEvent> {
 	extractTaskInstructions(event: TEvent): string;
 
 	/**
+	 * Whether the event's sender may use the agent. Checked before anything
+	 * else, including the receipt acknowledgement. The adapter replies to a
+	 * refused sender itself, if at all.
+	 *
+	 * Optional — when omitted, every sender is allowed.
+	 */
+	checkAccess?(event: TEvent): Promise<boolean>;
+
+	/**
 	 * Whether this event is allowed to *start* a brand-new session for its
 	 * thread. Events that may only continue an already-bound thread (e.g. a
 	 * plain Slack message that isn't an @mention) return false, so the handler
@@ -199,6 +208,13 @@ export class ChatSessionHandler<TEvent> {
 			this.logger.info(
 				`Processing ${this.adapter.platformName} webhook: ${this.adapter.getEventId(event)}`,
 			);
+
+			if (
+				this.adapter.checkAccess &&
+				!(await this.adapter.checkAccess(event))
+			) {
+				return;
+			}
 
 			// Fire-and-forget acknowledgement (e.g., emoji reaction)
 			this.adapter.acknowledgeReceipt(event).catch((err: unknown) => {

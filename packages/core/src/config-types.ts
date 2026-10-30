@@ -30,6 +30,8 @@ export {
 	requireLinearWorkspaceId,
 	type SandboxConfig,
 	SandboxConfigSchema,
+	type SlackAccessControlConfig,
+	SlackAccessControlConfigSchema,
 	type UserAccessControlConfig,
 	UserAccessControlConfigSchema,
 	type UserIdentifier,

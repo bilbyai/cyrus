@@ -88,6 +88,7 @@ export type {
 	RepositoryConfigPayload,
 	RunnerType,
 	SandboxConfig,
+	SlackAccessControlConfig,
 	UserAccessControlConfig,
 	UserIdentifier,
 } from "./config-types.js";

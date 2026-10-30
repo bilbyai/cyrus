@@ -1,4 +1,8 @@
-import type { IAgentRunner, ILogger } from "cyrus-core";
+import type {
+	IAgentRunner,
+	ILogger,
+	SlackAccessControlConfig,
+} from "cyrus-core";
 import { createLogger } from "cyrus-core";
 import {
 	buildPromptText,
@@ -10,6 +14,11 @@ import {
 } from "cyrus-slack-event-transport";
 import type { ChatRepositoryProvider } from "./ChatRepositoryProvider.js";
 import type { ChatPlatformAdapter } from "./ChatSessionHandler.js";
+import {
+	checkSlackAccess,
+	DEFAULT_SLACK_BLOCK_MESSAGE,
+	slackAccessNeedsEmail,
+} from "./SlackAccessControl.js";
 
 /**
  * Sentinel the agent emits when it has decided a Slack message does not warrant
@@ -58,8 +67,11 @@ export class SlackChatAdapter
 	private repositoryProvider: ChatRepositoryProvider;
 	private repositoryRoutingContext: string;
 	private behavioursPageUrl: string;
+	private getAccessControl: () => SlackAccessControlConfig | undefined;
 	private logger: ILogger;
 	private selfBotId: string | undefined;
+	/** Slack user ID → email, so access checks don't call users.info every message. */
+	private userEmails: Map<string, string | undefined> = new Map();
 
 	constructor(
 		repositoryProvider: ChatRepositoryProvider,
@@ -74,6 +86,8 @@ export class SlackChatAdapter
 			 * from this base and BEHAVIOURS_PAGE_ROUTE.
 			 */
 			cyrusAppBaseUrl?: string;
+			/** Live read of the `slackAccessControl` config. */
+			getAccessControl?: () => SlackAccessControlConfig | undefined;
 		},
 	) {
 		this.repositoryProvider = repositoryProvider;
@@ -83,6 +97,7 @@ export class SlackChatAdapter
 		this.behavioursPageUrl = appBaseUrl
 			? `${appBaseUrl}${BEHAVIOURS_PAGE_ROUTE}`
 			: "";
+		this.getAccessControl = options?.getAccessControl ?? (() => undefined);
 		this.logger = logger ?? createLogger({ component: "SlackChatAdapter" });
 	}
 
@@ -113,6 +128,74 @@ export class SlackChatAdapter
 			);
 			return undefined;
 		}
+	}
+
+	async checkAccess(event: SlackWebhookEvent): Promise<boolean> {
+		const config = this.getAccessControl();
+		if (!config) {
+			return true;
+		}
+
+		const userId = event.payload.user;
+		let userEmail: string | undefined;
+		if (slackAccessNeedsEmail(config)) {
+			try {
+				userEmail = await this.getUserEmail(event, userId);
+			} catch (error) {
+				// Fail closed: a rule we can't evaluate must not let anyone in.
+				this.logger.warn(
+					`Refusing Slack event from ${userId}: could not look up their email (${error instanceof Error ? error.message : String(error)})`,
+				);
+				return false;
+			}
+		}
+
+		const result = checkSlackAccess(config, userId, userEmail);
+		if (result.allowed) {
+			return true;
+		}
+
+		this.logger.info(`Refusing Slack event from ${userId}: ${result.reason}`);
+
+		// Only answer someone who spoke to the agent directly. Their plain
+		// replies in a thread it follows are ignored quietly.
+		const addressedToAgent =
+			event.eventType === "app_mention" ||
+			(event.payload.type === "message" && isDirectMessage(event.payload));
+		if (config.blockBehavior === "reply" && addressedToAgent) {
+			const token = this.getSlackBotToken(event);
+			if (token) {
+				await new SlackMessageService()
+					.postMessage({
+						token,
+						channel: event.payload.channel,
+						text: config.blockMessage ?? DEFAULT_SLACK_BLOCK_MESSAGE,
+						thread_ts: event.payload.thread_ts || event.payload.ts,
+					})
+					.catch((error: unknown) => {
+						this.logger.warn(
+							`Failed to post Slack block message: ${error instanceof Error ? error.message : String(error)}`,
+						);
+					});
+			}
+		}
+		return false;
+	}
+
+	private async getUserEmail(
+		event: SlackWebhookEvent,
+		userId: string,
+	): Promise<string | undefined> {
+		if (this.userEmails.has(userId)) {
+			return this.userEmails.get(userId);
+		}
+		const token = this.getSlackBotToken(event);
+		if (!token) {
+			throw new Error("no slackBotToken available");
+		}
+		const email = await new SlackMessageService().getUserEmail(token, userId);
+		this.userEmails.set(userId, email);
+		return email;
 	}
 
 	extractTaskInstructions(event: SlackWebhookEvent): string {

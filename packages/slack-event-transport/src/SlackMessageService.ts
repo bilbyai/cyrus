@@ -147,6 +147,44 @@ export class SlackMessageService {
 	}
 
 	/**
+	 * Get a user's email address via users.info. Needs the `users:read.email`
+	 * scope. Returns undefined when the user has no email, such as a bot.
+	 *
+	 * @see https://api.slack.com/methods/users.info
+	 */
+	async getUserEmail(token: string, user: string): Promise<string | undefined> {
+		const url = `${this.apiBaseUrl}/users.info?${new URLSearchParams({ user }).toString()}`;
+
+		const response = await fetch(url, {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
+
+		if (!response.ok) {
+			const errorBody = await response.text();
+			throw new Error(
+				`[SlackMessageService] Failed to get user: ${response.status} ${response.statusText} - ${errorBody}`,
+			);
+		}
+
+		const responseBody = (await response.json()) as {
+			ok: boolean;
+			error?: string;
+			user?: { profile?: { email?: string } };
+		};
+
+		if (!responseBody.ok) {
+			throw new Error(
+				`[SlackMessageService] Slack API error: ${responseBody.error ?? "unknown"}`,
+			);
+		}
+
+		return responseBody.user?.profile?.email;
+	}
+
+	/**
 	 * Fetch all messages in a Slack thread using cursor-based pagination.
 	 *
 	 * @see https://api.slack.com/methods/conversations.replies

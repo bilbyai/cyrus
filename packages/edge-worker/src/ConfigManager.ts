@@ -60,6 +60,7 @@ const RELOAD_MERGED_KEYS = [
 	"issueUpdateTrigger",
 	"maxConcurrentSessions",
 	"slackThreadFollowing",
+	"slackAccessControl",
 	"prReviewTrigger",
 	"userAccessControl",
 	"sandbox",
@@ -378,6 +379,8 @@ export class ConfigManager extends EventEmitter {
 					parsedConfig.prReviewTrigger ?? this.config.prReviewTrigger,
 				userAccessControl:
 					parsedConfig.userAccessControl ?? this.config.userAccessControl,
+				slackAccessControl:
+					parsedConfig.slackAccessControl ?? this.config.slackAccessControl,
 				stripeCustomerId:
 					parsedConfig.stripeCustomerId ?? this.config.stripeCustomerId,
 				global_setup_script:

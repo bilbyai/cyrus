@@ -333,6 +333,24 @@ describe("ChatSessionHandler session-initiation gate", () => {
 		expect(handler.listThreads()).toHaveLength(0);
 	});
 
+	it("does nothing, not even acknowledge, for a refused sender", async () => {
+		const adapter: ChatPlatformAdapter<TestEvent> = new TestChatAdapter(
+			"refused-thread",
+		);
+		adapter.checkAccess = vi.fn().mockResolvedValue(false);
+		const acknowledgeReceipt = vi.spyOn(adapter, "acknowledgeReceipt");
+
+		const { handler, createRunner } = buildHandler(adapter);
+		await handler.handleEvent({
+			eventId: "mention",
+			threadKey: "refused-thread",
+		} as any);
+
+		expect(acknowledgeReceipt).not.toHaveBeenCalled();
+		expect(createRunner).not.toHaveBeenCalled();
+		expect(handler.listThreads()).toHaveLength(0);
+	});
+
 	it("starts a session for an initiating event", async () => {
 		const adapter: ChatPlatformAdapter<TestEvent> = new TestChatAdapter(
 			"bound-thread",
@@ -577,6 +595,116 @@ describe("SlackChatAdapter session initiation", () => {
 				upstreamGated: true,
 			} as any),
 		).toBe(true);
+	});
+});
+
+describe("SlackChatAdapter access control", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const event = (overrides: Record<string, unknown> = {}) =>
+		({
+			eventType: "app_mention",
+			eventId: "Ev1",
+			teamId: "T1",
+			slackBotToken: "xoxb-test",
+			payload: {
+				type: "app_mention",
+				user: "U1",
+				channel: "C1",
+				text: "<@U0BOT> hi",
+				ts: "1700000000.000200",
+				event_ts: "1700000000.000200",
+			},
+			...overrides,
+		}) as any;
+
+	const adapterWith = (config: Record<string, unknown> | undefined) =>
+		new SlackChatAdapter(createStaticProvider([]), undefined, {
+			getAccessControl: () => config,
+		});
+
+	it("allows everyone when slackAccessControl is not set", async () => {
+		const getUserEmail = vi.spyOn(
+			SlackMessageService.prototype,
+			"getUserEmail",
+		);
+		expect(await adapterWith(undefined).checkAccess(event())).toBe(true);
+		expect(getUserEmail).not.toHaveBeenCalled();
+	});
+
+	it("allows an allowed domain and looks the email up only once", async () => {
+		const getUserEmail = vi
+			.spyOn(SlackMessageService.prototype, "getUserEmail")
+			.mockResolvedValue("ana@example.com");
+		const adapter = adapterWith({ allowedEmailDomains: ["example.com"] });
+
+		expect(await adapter.checkAccess(event())).toBe(true);
+		expect(await adapter.checkAccess(event())).toBe(true);
+		expect(getUserEmail).toHaveBeenCalledTimes(1);
+		expect(getUserEmail).toHaveBeenCalledWith("xoxb-test", "U1");
+	});
+
+	it("refuses when the email lookup fails", async () => {
+		vi.spyOn(SlackMessageService.prototype, "getUserEmail").mockRejectedValue(
+			new Error("missing_scope"),
+		);
+		const adapter = adapterWith({ allowedEmailDomains: ["example.com"] });
+
+		expect(await adapter.checkAccess(event())).toBe(false);
+	});
+
+	it("replies to a refused @mention when blockBehavior is reply", async () => {
+		vi.spyOn(SlackMessageService.prototype, "getUserEmail").mockResolvedValue(
+			"ana@other.com",
+		);
+		const postMessage = vi
+			.spyOn(SlackMessageService.prototype, "postMessage")
+			.mockResolvedValue(undefined);
+		const adapter = adapterWith({
+			allowedEmailDomains: ["example.com"],
+			blockBehavior: "reply",
+			blockMessage: "Ask an admin for access.",
+		});
+
+		expect(await adapter.checkAccess(event())).toBe(false);
+		expect(postMessage).toHaveBeenCalledWith({
+			token: "xoxb-test",
+			channel: "C1",
+			text: "Ask an admin for access.",
+			thread_ts: "1700000000.000200",
+		});
+	});
+
+	it("ignores a refused plain thread reply quietly, even when blockBehavior is reply", async () => {
+		vi.spyOn(SlackMessageService.prototype, "getUserEmail").mockResolvedValue(
+			"ana@other.com",
+		);
+		const postMessage = vi
+			.spyOn(SlackMessageService.prototype, "postMessage")
+			.mockResolvedValue(undefined);
+		const adapter = adapterWith({
+			allowedEmailDomains: ["example.com"],
+			blockBehavior: "reply",
+		});
+
+		const threadReply = event({
+			eventType: "message",
+			payload: {
+				type: "message",
+				channel_type: "channel",
+				user: "U1",
+				channel: "C1",
+				text: "thanks",
+				ts: "1700000000.000300",
+				thread_ts: "1700000000.000100",
+				event_ts: "1700000000.000300",
+			},
+		});
+
+		expect(await adapter.checkAccess(threadReply)).toBe(false);
+		expect(postMessage).not.toHaveBeenCalled();
 	});
 });
 

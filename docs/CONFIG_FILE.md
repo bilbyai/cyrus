@@ -354,6 +354,37 @@ Users can be specified in three formats:
 
 ---
 
+## Slack Access Control
+
+### `slackAccessControl` (object)
+
+Controls who can use the agent in Slack. Global only. Changes apply to the next message without a restart. Omit it to let everyone who can reach the bot use it.
+
+**Properties:**
+
+- **`allowedEmailDomains`** (array of strings) - Slack users whose email is in one of these domains are allowed, for example `["example.com"]`. Domains match exactly, so `example.com` doesn't allow `mail.example.com`. Needs the `users:read.email` scope.
+- **`allowedUsers`** (array) - Slack users allowed regardless of their email domain. Use a Slack user ID (`"U012ABC"`), `{ "id": "U012ABC" }`, or `{ "email": "guest@partner.com" }`.
+- **`blockedUsers`** (array) - Slack users who are never allowed, in the same formats. Takes precedence over every allow rule.
+- **`blockBehavior`** (string) - What happens when someone who isn't allowed @mentions or messages the agent:
+  - `"silent"` (default) - Ignore them
+  - `"reply"` - Reply in the thread with `blockMessage`
+- **`blockMessage`** (string) - The reply when `blockBehavior` is `"reply"`. Default: `"Sorry, you're not allowed to use this agent."`
+
+If neither `allowedEmailDomains` nor `allowedUsers` is set, everyone not blocked is allowed. A refused user's plain replies in a thread the agent follows are always ignored quietly. If a rule needs an email and Slack won't return it, the user is refused.
+
+**Example - only your company, plus one guest:**
+
+```json
+{
+  "slackAccessControl": {
+    "allowedEmailDomains": ["example.com"],
+    "allowedUsers": [{ "email": "guest@partner.com" }],
+    "blockBehavior": "reply",
+    "blockMessage": "Sorry, I only take requests from the Example team."
+  }
+}
+```
+
 ## Sandbox (Network Egress Control)
 
 ### `sandbox` (object)

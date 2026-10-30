@@ -58,6 +58,33 @@ export const UserAccessControlConfigSchema = z.object({
 	blockMessage: z.string().optional(),
 });
 
+/**
+ * Who may start Slack sessions. A user is allowed when no allow rule is set,
+ * or when they match `allowedUsers` or have an email in `allowedEmailDomains`.
+ * `blockedUsers` always wins.
+ */
+export const SlackAccessControlConfigSchema = z.object({
+	/** Email domains whose Slack users are allowed, e.g. ["example.com"]. */
+	allowedEmailDomains: z.array(z.string()).optional(),
+
+	/** Slack users allowed regardless of their email domain. */
+	allowedUsers: z.array(UserIdentifierSchema).optional(),
+
+	/** Slack users who are never allowed. Takes precedence over every allow rule. */
+	blockedUsers: z.array(UserIdentifierSchema).optional(),
+
+	/**
+	 * What happens when someone who isn't allowed @mentions or messages the agent.
+	 * - 'silent': Ignore them quietly (default)
+	 * - 'reply': Reply in the thread with `blockMessage`
+	 * Plain messages in a followed thread are always ignored quietly.
+	 */
+	blockBehavior: z.enum(["silent", "reply"]).optional(),
+
+	/** Reply used when blockBehavior is 'reply'. */
+	blockMessage: z.string().optional(),
+});
+
 export type JsonValue =
 	| string
 	| number
@@ -589,6 +616,9 @@ export const EdgeConfigSchema = z.object({
 	 */
 	userAccessControl: UserAccessControlConfigSchema.optional(),
 
+	/** Who may start Slack sessions. Omit to allow everyone who can reach the bot. */
+	slackAccessControl: SlackAccessControlConfigSchema.optional(),
+
 	/** Global defaults for prompt types (tool restrictions per prompt type) */
 	promptDefaults: PromptDefaultsSchema.optional(),
 
@@ -711,6 +741,9 @@ export function migrateEdgeConfig(
 export type UserIdentifier = z.infer<typeof UserIdentifierSchema>;
 export type UserAccessControlConfig = z.infer<
 	typeof UserAccessControlConfigSchema
+>;
+export type SlackAccessControlConfig = z.infer<
+	typeof SlackAccessControlConfigSchema
 >;
 export type LinearWorkspaceConfig = z.infer<typeof LinearWorkspaceConfigSchema>;
 export type OpenCodeConfigOverrides = z.infer<typeof OpenCodeConfigSchema>;

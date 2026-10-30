@@ -44,12 +44,12 @@ function userMatchesIdentifier(
 
 /**
  * Checks if a user matches any identifier in a list.
- * @param userId - The user's Linear ID
+ * @param userId - The user's platform ID (Linear or Slack)
  * @param userEmail - The user's email address
  * @param identifiers - List of identifiers to check against
  * @returns true if the user matches any identifier
  */
-function userMatchesAny(
+export function userMatchesAny(
 	userId: string | undefined,
 	userEmail: string | undefined,
 	identifiers: UserIdentifier[],

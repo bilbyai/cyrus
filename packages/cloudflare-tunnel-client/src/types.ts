@@ -25,4 +25,6 @@ export interface CloudflareTunnelRecoveryOptions {
 	stableConnectionMs?: number;
 	/** Grace period after SIGINT before SIGKILL on deliberate disconnect */
 	killGraceMs?: number;
+	/** Max wait for a killed child to exit before restarting; recovery stops if exceeded */
+	killWaitMs?: number;
 }

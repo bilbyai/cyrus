@@ -125,4 +125,35 @@ describe("SharedApplicationServer Cloudflare tunnel recovery", () => {
 		await new Promise((r) => setTimeout(r, 1500));
 		expect(spawns()).toHaveLength(1);
 	});
+
+	it("stop() cancels startup promptly between the first and fourth connection without leaking", async () => {
+		writeFileSync(join(dir, "plan.json"), JSON.stringify(["connect1"]));
+		const { server, info } = createServer();
+		const baseline = activeTimeouts();
+
+		const startup = server.startCloudflareTunnel("fake-token-for-tests");
+		const settled = startup.then(
+			() => "resolved",
+			(error: Error) => error.message,
+		);
+		// The client's own startup has resolved; the server still waits for 4/4
+		await waitFor(() =>
+			info.mock.calls.some(
+				([m]) => m === "Cloudflare tunnel connection 1/4 established",
+			),
+		);
+		const { pid } = spawns()[0]!;
+
+		const stoppedAt = Date.now();
+		await server.stop();
+		expect(await settled).toBe(
+			"Shared application server stopped during Cloudflare tunnel startup",
+		);
+		expect(Date.now() - stoppedAt).toBeLessThan(1000);
+
+		await waitFor(() => !isAlive(pid), 7000);
+		expect(activeTimeouts()).toBe(baseline);
+		await new Promise((r) => setTimeout(r, 1500));
+		expect(spawns()).toHaveLength(1);
+	});
 });

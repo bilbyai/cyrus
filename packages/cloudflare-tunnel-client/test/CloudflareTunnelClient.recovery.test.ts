@@ -23,7 +23,10 @@ process.env.CLOUDFLARED_BIN = fakeBin;
 const { CloudflareTunnelClient } = await import(
 	"../src/CloudflareTunnelClient.js"
 );
+const { Tunnel } = await import("cloudflared");
 type Client = InstanceType<typeof CloudflareTunnelClient>;
+type ClientOptions =
+	import("../src/CloudflareTunnelClient.js").CloudflareTunnelClientOptions;
 
 const TOKEN = "fake-token-for-tests";
 
@@ -62,7 +65,7 @@ async function waitFor(condition: () => boolean, timeoutMs = 5000) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function createClient(options = {}) {
+function createClient(options: ClientOptions = {}) {
 	const client = new CloudflareTunnelClient(TOKEN, 3456, undefined, {
 		connectTimeoutMs: 2000,
 		initialRestartDelayMs: 50,
@@ -260,5 +263,185 @@ describe("CloudflareTunnelClient startup", () => {
 		await first;
 		await sleep(200);
 		expect(spawns()).toHaveLength(1);
+	});
+});
+
+describe("CloudflareTunnelClient listener reentrancy", () => {
+	it("stays stopped when a disconnect listener stops the client after an unexpected exit", async () => {
+		setPlan(["connect", "connect"]);
+		const { client } = createClient();
+		await client.startTunnel();
+		client.on("disconnect", () => client.disconnect());
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await sleep(400); // well past the 50ms restart delay
+		expect(spawns()).toHaveLength(1);
+		expect(client.isConnected()).toBe(false);
+	});
+
+	it("rejects startup and kills the child when a ready listener stops the client", async () => {
+		setPlan(["connect"]);
+		const { client, events } = createClient();
+		client.on("ready", () => client.disconnect());
+
+		await expect(client.startTunnel()).rejects.toThrow(
+			"disconnected during startup",
+		);
+		await waitFor(() => !isAlive(spawns()[0]!.pid));
+		await sleep(200);
+		expect(spawns()).toHaveLength(1);
+		expect(events).not.toContain("connect");
+	});
+
+	it("settles startup and stays stopped when a connected listener stops the client on the first connection", async () => {
+		setPlan(["connect"]);
+		const { client, events } = createClient();
+		client.on("connected", () => client.disconnect());
+
+		await client.startTunnel(); // settled by the connection, not left hanging
+		expect(events).not.toContain("connect");
+		expect(client.isConnected()).toBe(false);
+		await waitFor(() => !isAlive(spawns()[0]!.pid));
+		await sleep(200);
+		expect(spawns()).toHaveLength(1);
+	});
+
+	it("stays stopped when a connect listener stops the client on recovery", async () => {
+		setPlan(["connect", "connect"]);
+		const { client, events } = createClient();
+		await client.startTunnel();
+		client.on("connect", () => client.disconnect());
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await waitFor(() => events.filter((e) => e === "connect").length === 2);
+		await waitFor(() => !isAlive(spawns()[1]!.pid));
+		await sleep(300);
+		expect(spawns()).toHaveLength(2);
+		expect(client.isConnected()).toBe(false);
+	});
+
+	it("stays stopped when an error listener stops the client on give-up", async () => {
+		setPlan(["connect", "exit:1"]);
+		const { client, events } = createClient({ maxRestartAttempts: 1 });
+		await client.startTunnel();
+		client.on("error", () => client.disconnect());
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await waitFor(() => events.includes("disconnect: Client disconnected"));
+		await sleep(300);
+		expect(spawns()).toHaveLength(2);
+		expect(
+			events.filter((e) => e === "disconnect: Client disconnected"),
+		).toHaveLength(1);
+	});
+});
+
+describe("CloudflareTunnelClient strict child ownership", () => {
+	// Real children; only the restart child's kill() is wrapped so its
+	// termination is slow or never happens, independent of SIGKILL speed
+	function wrapSecondChildKill(
+		wrap: (realKill: (signal: NodeJS.Signals) => boolean) => void,
+	) {
+		let created = 0;
+		let secondExitAt = 0;
+		const createTunnel = (token: string) => {
+			const tunnel = Tunnel.withToken(token);
+			if (++created === 2) {
+				const child = tunnel.process;
+				const realKill = child.kill.bind(child);
+				child.kill = () => {
+					wrap((signal) => realKill(signal));
+					return true;
+				};
+				child.once("exit", () => {
+					secondExitAt = Date.now();
+				});
+			}
+			return tunnel;
+		};
+		return { createTunnel, secondExitAt: () => secondExitAt };
+	}
+
+	it("waits for a slowly terminating child to exit before spawning the next", async () => {
+		setPlan(["connect", "hang", "connect"]);
+		const seam = wrapSecondChildKill((realKill) => {
+			setTimeout(() => realKill("SIGKILL"), 500);
+		});
+		const { client, events } = createClient({
+			connectTimeoutMs: 300,
+			createTunnel: seam.createTunnel,
+		});
+		await client.startTunnel();
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await waitFor(() => spawns().length === 2);
+		// Restart child timed out and was killed, but has not exited yet
+		await sleep(500);
+		expect(isAlive(spawns()[1]!.pid)).toBe(true);
+		expect(spawns()).toHaveLength(2);
+
+		await waitFor(() => events.filter((e) => e === "connect").length === 2);
+		const all = spawns();
+		expect(all).toHaveLength(3);
+		expect(seam.secondExitAt()).toBeGreaterThan(0);
+		expect(all[2]!.at).toBeGreaterThanOrEqual(seam.secondExitAt());
+	});
+
+	it("stops recovery instead of running two children when a killed child never exits", async () => {
+		setPlan(["connect", "hang", "connect"]);
+		const seam = wrapSecondChildKill(() => {});
+		const { client, errors } = createClient({
+			connectTimeoutMs: 300,
+			killWaitMs: 300,
+			createTunnel: seam.createTunnel,
+		});
+		await client.startTunnel();
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await waitFor(() => errors.length > 0, 3000);
+		expect(errors[0]!.message).toContain("did not exit within 300ms");
+		await sleep(400);
+		expect(spawns()).toHaveLength(2);
+		expect(isAlive(spawns()[1]!.pid)).toBe(true); // still owned, not replaced
+		expect(client.isConnected()).toBe(false);
+	});
+
+	it("retries when creating the restart child throws synchronously", async () => {
+		setPlan(["connect", "connect"]);
+		let created = 0;
+		const { client, events, errors } = createClient({
+			createTunnel: (token) => {
+				created++;
+				if (created === 2 || created === 3) throw new Error("spawn EAGAIN");
+				return Tunnel.withToken(token);
+			},
+		});
+		await client.startTunnel();
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await waitFor(() => events.filter((e) => e === "connect").length === 2);
+		expect(created).toBe(4);
+		expect(spawns()).toHaveLength(2);
+		expect(errors).toEqual([]);
+	});
+
+	it("gives up without an uncaught exception when creating restart children keeps throwing", async () => {
+		setPlan(["connect"]);
+		let created = 0;
+		const { client, errors } = createClient({
+			createTunnel: (token) => {
+				if (++created > 1) throw new Error("spawn EAGAIN");
+				return Tunnel.withToken(token);
+			},
+		});
+		await client.startTunnel();
+
+		process.kill(spawns()[0]!.pid, "SIGUSR2");
+		await waitFor(() => errors.length > 0);
+		expect(errors[0]!.message).toContain(
+			"gave up after 3 consecutive failed restart attempts (Tunnel process failed to spawn: spawn EAGAIN)",
+		);
+		expect(created).toBe(4);
+		expect(client.isConnected()).toBe(false);
 	});
 });

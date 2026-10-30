@@ -53,6 +53,8 @@ export class SharedApplicationServer {
 	private host: string;
 	private isListening = false;
 	private tunnelClient: CloudflareTunnelClient | null = null;
+	/** Fails a pending startCloudflareTunnel() promise; set only while it is pending */
+	private cancelTunnelStartup: ((error: Error) => void) | null = null;
 	private skipTunnel: boolean;
 	private logger: ILogger;
 
@@ -168,6 +170,7 @@ export class SharedApplicationServer {
 				if (settled) return;
 				settled = true;
 				if (startupTimeout) clearTimeout(startupTimeout);
+				if (this.cancelTunnelStartup === fail) this.cancelTunnelStartup = null;
 				resolve();
 			};
 			// Startup failed: stop the client so its cloudflared child is killed
@@ -176,6 +179,7 @@ export class SharedApplicationServer {
 				if (settled) return;
 				settled = true;
 				if (startupTimeout) clearTimeout(startupTimeout);
+				if (this.cancelTunnelStartup === fail) this.cancelTunnelStartup = null;
 				tunnelClient.disconnect();
 				if (this.tunnelClient === tunnelClient) {
 					this.tunnelClient = null;
@@ -224,6 +228,10 @@ export class SharedApplicationServer {
 				}
 			});
 
+			// stop() can cancel startup at any point, including after the client's
+			// first connection but before all 4 have registered
+			this.cancelTunnelStartup = fail;
+
 			// Start the tunnel
 			tunnelClient.startTunnel().catch(fail);
 
@@ -252,6 +260,16 @@ export class SharedApplicationServer {
 			);
 		}
 		this.pendingApprovals.clear();
+
+		// Fail a still-pending tunnel startup promptly (this also stops its client)
+		if (this.cancelTunnelStartup) {
+			this.cancelTunnelStartup(
+				new Error(
+					"Shared application server stopped during Cloudflare tunnel startup",
+				),
+			);
+			this.logger.info("Cloudflare tunnel startup cancelled");
+		}
 
 		// Stop Cloudflare tunnel if running
 		if (this.tunnelClient) {

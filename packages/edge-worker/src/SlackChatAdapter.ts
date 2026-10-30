@@ -2,6 +2,7 @@ import type { IAgentRunner, ILogger } from "cyrus-core";
 import { createLogger } from "cyrus-core";
 import {
 	buildPromptText,
+	isDirectMessage,
 	SlackMessageService,
 	SlackReactionService,
 	type SlackThreadMessage,
@@ -123,6 +124,7 @@ export class SlackChatAdapter
 	 * in-memory binding for its thread.
 	 *
 	 * - An explicit @mention always may.
+	 * - A direct message always may: it is addressed to the bot.
 	 * - A plain `message` event may only when it was upstream-gated (proxy mode):
 	 *   CYHOST forwards `message` events solely for threads it has a persistent
 	 *   binding row for, so reaching us means the thread is genuinely bound. This
@@ -133,7 +135,11 @@ export class SlackChatAdapter
 	 *   session for arbitrary channel chatter.
 	 */
 	isSessionInitiatingEvent(event: SlackWebhookEvent): boolean {
-		return event.eventType === "app_mention" || event.upstreamGated === true;
+		return (
+			event.eventType === "app_mention" ||
+			event.upstreamGated === true ||
+			(event.payload.type === "message" && isDirectMessage(event.payload))
+		);
 	}
 
 	getThreadKey(event: SlackWebhookEvent): string {

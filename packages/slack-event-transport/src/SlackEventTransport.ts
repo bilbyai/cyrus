@@ -13,6 +13,11 @@ import type {
 	SlackWebhookEvent,
 } from "./types.js";
 
+/** Whether a message was sent in a direct message with the bot. */
+export function isDirectMessage(event: SlackMessageEvent): boolean {
+	return event.channel_type === "im";
+}
+
 export declare interface SlackEventTransport {
 	on<K extends keyof SlackEventTransportEvents>(
 		event: K,
@@ -37,8 +42,8 @@ export declare interface SlackEventTransport {
  * - app_mention: When the bot is mentioned with @ in a channel or thread.
  *   Always emitted — starts or resumes a session for the thread.
  * - message: A plain message in a channel/thread the bot can see. Emitted only
- *   for threaded replies that aren't the bot's own message and aren't a
- *   subtype event (edits, joins, etc.). Whether it actually does anything is
+ *   for threaded replies and direct messages that aren't the bot's own message
+ *   and aren't a subtype event (edits, joins, etc.). Whether it actually does anything is
  *   decided downstream (ChatSessionHandler only continues already-bound
  *   threads). Slack delivers both an `app_mention` AND a `message` event for a
  *   message that mentions the bot, so identical `(channel, ts)` pairs are
@@ -310,8 +315,11 @@ export class SlackEventTransport extends EventEmitter {
 		// behave exactly like the app_mention-only runtime: drop `message` events
 		// here — BEFORE the de-dup below records their (channel, ts) — so a
 		// mention's `message` twin can never suppress its `app_mention`.
+		// Direct messages are always addressed to the bot, so they are not
+		// thread-following and are never dropped by this toggle.
 		if (
 			event.type === "message" &&
+			!isDirectMessage(event) &&
 			this.config.isThreadFollowingEnabled &&
 			!this.config.isThreadFollowingEnabled()
 		) {
@@ -376,8 +384,9 @@ export class SlackEventTransport extends EventEmitter {
 	 * Decide whether a `message` event is a candidate follow-up prompt.
 	 *
 	 * Drops the bot's own messages (which would otherwise loop), edited/deleted
-	 * and other subtype events, and top-level (non-threaded) messages — only a
-	 * threaded reply can belong to a thread Cyrus is already bound to.
+	 * and other subtype events, and top-level (non-threaded) channel messages —
+	 * only a threaded reply can belong to a thread Cyrus is already bound to.
+	 * A top-level direct message is kept: it is addressed to the bot.
 	 */
 	private shouldEmitMessageEvent(event: SlackMessageEvent): boolean {
 		if (event.bot_id) {
@@ -392,7 +401,7 @@ export class SlackEventTransport extends EventEmitter {
 			);
 			return false;
 		}
-		if (!event.thread_ts) {
+		if (!event.thread_ts && !isDirectMessage(event)) {
 			this.logger.debug(
 				`Ignoring non-threaded Slack message (channel ${event.channel})`,
 			);

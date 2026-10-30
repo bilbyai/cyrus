@@ -240,6 +240,11 @@ export interface SlackMessageEvent {
 	channel: string;
 	/** Thread timestamp - present if this is a threaded reply */
 	thread_ts?: string;
+	/**
+	 * Kind of conversation: "channel", "group", "mpim", or "im" for a direct
+	 * message with the bot.
+	 */
+	channel_type?: string;
 	/** Event timestamp */
 	event_ts: string;
 	/** Message attachments (see {@link SlackMessageAttachment}). */

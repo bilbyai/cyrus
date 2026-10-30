@@ -387,6 +387,54 @@ describe("SlackEventTransport", () => {
 			expect(eventListener).not.toHaveBeenCalled();
 		});
 
+		it("emits a top-level direct message", async () => {
+			const eventListener = vi.fn();
+			transport.on("event", eventListener);
+
+			const envelope = {
+				...testThreadedMessageEnvelope,
+				event: {
+					...testThreadedMessageEnvelope.event,
+					channel: "D0DM",
+					channel_type: "im",
+					thread_ts: undefined,
+				},
+			};
+			const request = createMockRequest(envelope, {
+				authorization: `Bearer ${testSecret}`,
+			});
+			const reply = createMockReply();
+
+			await mockFastify.routes["/slack-webhook"]!(request, reply);
+
+			expect(reply.send).toHaveBeenCalledWith({ success: true });
+			expect(eventListener).toHaveBeenCalledTimes(1);
+			expect(eventListener.mock.calls[0]![0].payload.channel_type).toBe("im");
+		});
+
+		it("ignores a direct message from a bot (loop prevention)", async () => {
+			const eventListener = vi.fn();
+			transport.on("event", eventListener);
+
+			const envelope = {
+				...testThreadedMessageEnvelope,
+				event: {
+					...testThreadedMessageEnvelope.event,
+					channel_type: "im",
+					thread_ts: undefined,
+					bot_id: "B0BOT",
+				},
+			};
+			const request = createMockRequest(envelope, {
+				authorization: `Bearer ${testSecret}`,
+			});
+			const reply = createMockReply();
+
+			await mockFastify.routes["/slack-webhook"]!(request, reply);
+
+			expect(eventListener).not.toHaveBeenCalled();
+		});
+
 		it("ignores message events from a bot (loop prevention)", async () => {
 			const eventListener = vi.fn();
 			transport.on("event", eventListener);
@@ -460,6 +508,36 @@ describe("SlackEventTransport", () => {
 				ignored: true,
 			});
 			expect(eventListener).not.toHaveBeenCalled();
+		});
+
+		it("still emits direct messages when thread-following is disabled", async () => {
+			const disabledTransport = new SlackEventTransport({
+				fastifyServer:
+					mockFastify as unknown as SlackEventTransportConfig["fastifyServer"],
+				verificationMode: "proxy",
+				secret: testSecret,
+				isThreadFollowingEnabled: () => false,
+			});
+			disabledTransport.register();
+			const eventListener = vi.fn();
+			disabledTransport.on("event", eventListener);
+
+			const envelope = {
+				...testThreadedMessageEnvelope,
+				event: {
+					...testThreadedMessageEnvelope.event,
+					channel_type: "im",
+					thread_ts: undefined,
+				},
+			};
+			const request = createMockRequest(envelope, {
+				authorization: `Bearer ${testSecret}`,
+			});
+			const reply = createMockReply();
+
+			await mockFastify.routes["/slack-webhook"]!(request, reply);
+
+			expect(eventListener).toHaveBeenCalledTimes(1);
 		});
 
 		it("still processes app_mention when thread-following is disabled, even after the message twin", async () => {

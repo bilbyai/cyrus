@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- You can now message the agent directly in Slack. A direct message starts a session like an @mention does, and the agent replies in a thread under it. Direct messages work even when thread following is turned off. The Slack app needs the `message.im` event and `im:history` scope, which the default manifest already includes.
+
 ### Changed
 - Moved the Cyrus Inbox plugin package to a separately maintained private repository. The CLI, runtime and `post_message_to_codex` tool are unchanged. ([#1558](https://github.com/cyrusagents/cyrus/pull/1558))
 

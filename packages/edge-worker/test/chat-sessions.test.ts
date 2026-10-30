@@ -553,8 +553,20 @@ describe("SlackChatAdapter session initiation", () => {
 			adapter.isSessionInitiatingEvent({
 				eventType: "message",
 				upstreamGated: false,
+				payload: { type: "message", channel_type: "channel" },
 			} as any),
 		).toBe(false);
+	});
+
+	it("treats a direct message as session-initiating", () => {
+		const adapter = new SlackChatAdapter(createStaticProvider([]));
+		expect(
+			adapter.isSessionInitiatingEvent({
+				eventType: "message",
+				upstreamGated: false,
+				payload: { type: "message", channel_type: "im" },
+			} as any),
+		).toBe(true);
 	});
 
 	it("treats an upstream-gated message as session-initiating (proxy mode survives restart)", () => {

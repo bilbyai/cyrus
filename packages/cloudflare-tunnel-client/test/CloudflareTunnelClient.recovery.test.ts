@@ -13,7 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const fakeBin = fileURLToPath(
 	new URL("./fake-cloudflared.mjs", import.meta.url),
@@ -89,6 +89,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+	vi.restoreAllMocks();
 	for (const client of clients) client.disconnect();
 	clients = [];
 	for (const { pid } of spawns()) {
@@ -126,8 +127,33 @@ describe("CloudflareTunnelClient post-start recovery", () => {
 	});
 
 	it("backs off exponentially with a delay cap and gives up after the attempt limit", async () => {
+		// Record which timer delay each spawn ran under, independent of how long
+		// the real child launch takes: wrap every setTimeout callback, and have
+		// the tunnel factory read the delay of the timer that is running
+		const realSetTimeout = globalThis.setTimeout;
+		let runningTimerDelay: number | undefined;
+		vi.spyOn(globalThis, "setTimeout").mockImplementation(((
+			callback: (...args: unknown[]) => void,
+			delay?: number,
+			...args: unknown[]
+		) =>
+			realSetTimeout(() => {
+				runningTimerDelay = delay;
+				try {
+					callback(...args);
+				} finally {
+					runningTimerDelay = undefined;
+				}
+			}, delay)) as typeof setTimeout);
+		const spawnTimerDelays: (number | undefined)[] = [];
+
 		setPlan(["connect", "exit:1"]);
-		const { client, events, errors } = createClient();
+		const { client, events, errors } = createClient({
+			createTunnel: (token) => {
+				spawnTimerDelays.push(runningTimerDelay);
+				return Tunnel.withToken(token);
+			},
+		});
 
 		await client.startTunnel();
 		process.kill(spawns()[0]!.pid, "SIGUSR2");
@@ -136,18 +162,23 @@ describe("CloudflareTunnelClient post-start recovery", () => {
 		expect(errors[0]!.message).toContain(
 			"gave up after 3 consecutive failed restart attempts",
 		);
+		// Initial spawn is not timer-driven; restarts ran from backoff timers of
+		// 50ms, 100ms, then 150ms: capped by maxRestartDelayMs instead of 200ms
+		expect(spawnTimerDelays).toEqual([undefined, 50, 100, 150]);
+
 		const all = spawns();
 		expect(all).toHaveLength(4); // initial + 3 restarts
+		// Real children: each restart waited at least its backoff delay. No upper
+		// bound: wall-clock gaps also include process launch and scheduling time
 		const gaps = all.slice(1).map((s, i) => s.at - all[i]!.at);
-		// 50ms, 100ms, then capped at 150ms (not 200ms)
 		expect(gaps[0]).toBeGreaterThanOrEqual(50);
 		expect(gaps[1]).toBeGreaterThanOrEqual(100);
 		expect(gaps[2]).toBeGreaterThanOrEqual(150);
-		expect(gaps[2]).toBeLessThan(195);
 
 		// Terminal: no further respawns, honestly disconnected
 		await sleep(400);
 		expect(spawns()).toHaveLength(4);
+		expect(spawnTimerDelays).toHaveLength(4);
 		expect(client.isConnected()).toBe(false);
 		expect(events.filter((e) => e === "connect")).toHaveLength(1);
 	});

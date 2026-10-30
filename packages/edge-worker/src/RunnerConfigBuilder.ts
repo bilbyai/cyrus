@@ -113,6 +113,8 @@ export interface ChatRunnerConfigInput {
 	opencodeGlobalStateScope?: OpenCodeConfigOverrides["stateScope"];
 	/** Existing runner type to preserve when resuming a completed chat session */
 	runnerType?: RunnerType;
+	/** Extra env vars for the session, such as who started it (see ChatPlatformAdapter.getSessionEnv). */
+	additionalEnv?: Record<string, string>;
 	logger: ILogger;
 	onMessage: (message: SDKMessage) => void | Promise<void>;
 	onError: (error: Error) => void;
@@ -323,6 +325,7 @@ export class RunnerConfigBuilder {
 			),
 			...(mcpConfig ? { mcpConfig } : {}),
 			...(mcpConfigPath ? { mcpConfigPath } : {}),
+			...(input.additionalEnv ? { additionalEnv: input.additionalEnv } : {}),
 			strictMcpConfig: input.strictMcpConfig ?? true,
 			...(input.resumeSessionId
 				? { resumeSessionId: input.resumeSessionId }

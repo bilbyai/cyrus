@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Slack sessions now get env vars describing who started them and where: `CYRUS_PLATFORM`, `CYRUS_SLACK_CHANNEL`, `CYRUS_SLACK_CHANNEL_TYPE`, `CYRUS_REQUESTER_SLACK_ID`, and `CYRUS_REQUESTER_EMAIL`. MCP configs can read them with `${VAR}`, so your own tools can check who is asking without trusting the conversation.
 - New `slackAccessControl` setting limits who can use the agent in Slack, by email domain, allowed users, and blocked users. Refused users are ignored, or get a short reply if you set `blockBehavior` to `"reply"`. See [Slack Access Control](docs/CONFIG_FILE.md#slack-access-control).
 - You can now message the agent directly in Slack. A direct message starts a session like an @mention does, and the agent replies in a thread under it. Direct messages work even when thread following is turned off. The Slack app needs the `message.im` event and `im:history` scope, which the default manifest already includes.
 

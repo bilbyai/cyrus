@@ -137,6 +137,27 @@ describe("RunnerConfigBuilder.buildChatConfig", () => {
 		expect(config.skills).toEqual(["agent-browser", "test-user-skills"]);
 	});
 
+	it("passes session env to chat runner configs", () => {
+		const builder = makeBuilder();
+
+		const config = builder.buildChatConfig({
+			workspacePath: "/tmp/slack-workspace",
+			workspaceName: "slack-thread-x",
+			systemPrompt: "test",
+			sessionId: "sess-1",
+			cyrusHome: "/tmp/cyrus-home-test",
+			platformName: "slack",
+			additionalEnv: { CYRUS_REQUESTER_EMAIL: "ana@example.com" },
+			logger: silentLogger,
+			onMessage: () => {},
+			onError: () => {},
+		});
+
+		expect(config.additionalEnv).toEqual({
+			CYRUS_REQUESTER_EMAIL: "ana@example.com",
+		});
+	});
+
 	it("passes OpenCode config overrides only when chat default runner is OpenCode", () => {
 		const globalConfig = {
 			provider: { anthropic: { options: { baseURL: "https://global.test" } } },

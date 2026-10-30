@@ -182,6 +182,36 @@ export class SlackChatAdapter
 		return false;
 	}
 
+	/**
+	 * Who started this run and where. In a followed thread several people can
+	 * speak, so these describe the message that started or resumed the session,
+	 * not every message in it. In a direct message there is only one person.
+	 */
+	async getSessionEnv(
+		event: SlackWebhookEvent,
+	): Promise<Record<string, string>> {
+		const { user, channel } = event.payload;
+		const env: Record<string, string> = {
+			CYRUS_PLATFORM: "slack",
+			CYRUS_SLACK_CHANNEL: channel,
+			CYRUS_REQUESTER_SLACK_ID: user,
+		};
+		if (event.payload.type === "message" && event.payload.channel_type) {
+			env.CYRUS_SLACK_CHANNEL_TYPE = event.payload.channel_type;
+		}
+		try {
+			const email = await this.getUserEmail(event, user);
+			if (email) {
+				env.CYRUS_REQUESTER_EMAIL = email;
+			}
+		} catch (error) {
+			this.logger.warn(
+				`Could not look up the email of Slack user ${user}: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+		return env;
+	}
+
 	private async getUserEmail(
 		event: SlackWebhookEvent,
 		userId: string,

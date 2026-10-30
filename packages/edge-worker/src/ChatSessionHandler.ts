@@ -61,6 +61,16 @@ export interface ChatPlatformAdapter<TEvent> {
 	buildSystemPrompt(event: TEvent): string;
 
 	/**
+	 * Env vars describing who started this run and where, such as the
+	 * requester's email. They are set when the session starts or resumes, and
+	 * MCP configs can read them with `${VAR}`, so a tool can trust them in a way
+	 * it can't trust the conversation.
+	 *
+	 * Optional — platforms without this context omit it.
+	 */
+	getSessionEnv?(event: TEvent): Promise<Record<string, string>>;
+
+	/**
 	 * Thread context as a formatted string, or "" if not applicable. Pass
 	 * `sinceTs` to read only what followed it, so a resumed session catches up on
 	 * discussion it never saw. `null` means the read failed — only a non-null
@@ -359,6 +369,9 @@ export class ChatSessionHandler<TEvent> {
 				sessionId,
 				systemPrompt,
 				sessionId,
+				undefined,
+				undefined,
+				await this.adapter.getSessionEnv?.(event),
 			);
 
 			const runner = this.deps.createRunner(
@@ -566,6 +579,7 @@ export class ChatSessionHandler<TEvent> {
 			sessionId,
 			resumeSessionId,
 			runnerType,
+			await this.adapter.getSessionEnv?.(event),
 		);
 
 		const runner = this.deps.createRunner(runnerConfig, runnerType);
@@ -785,6 +799,7 @@ export class ChatSessionHandler<TEvent> {
 		sessionId: string,
 		resumeSessionId?: string,
 		runnerType?: RunnerType,
+		additionalEnv?: Record<string, string>,
 	): Promise<AgentRunnerConfig> {
 		const sessionLogger = this.logger.withContext({
 			sessionId,
@@ -821,6 +836,7 @@ export class ChatSessionHandler<TEvent> {
 			skills: skillsConfig.skills,
 			opencodeGlobalConfig: this.deps.getOpenCodeGlobalConfig?.(),
 			opencodeGlobalStateScope: this.deps.getOpenCodeGlobalStateScope?.(),
+			additionalEnv,
 			logger: sessionLogger,
 			onMessage: (message: SDKMessage) =>
 				this.handleAgentMessage(sessionId, message),

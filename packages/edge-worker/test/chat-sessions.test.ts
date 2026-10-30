@@ -45,6 +45,7 @@ function createMockRunnerConfigBuilder(): RunnerConfigBuilder {
 					: {}),
 				...(input.plugins ? { plugins: input.plugins } : {}),
 				...(input.skills !== undefined ? { skills: input.skills } : {}),
+				...(input.additionalEnv ? { additionalEnv: input.additionalEnv } : {}),
 				logger: input.logger,
 				maxTurns: 200,
 				onMessage: input.onMessage,
@@ -349,6 +350,25 @@ describe("ChatSessionHandler session-initiation gate", () => {
 		expect(acknowledgeReceipt).not.toHaveBeenCalled();
 		expect(createRunner).not.toHaveBeenCalled();
 		expect(handler.listThreads()).toHaveLength(0);
+	});
+
+	it("passes the adapter's session env to the runner", async () => {
+		const adapter: ChatPlatformAdapter<TestEvent> = new TestChatAdapter(
+			"env-thread",
+		);
+		adapter.getSessionEnv = vi
+			.fn()
+			.mockResolvedValue({ CYRUS_REQUESTER_EMAIL: "ana@example.com" });
+
+		const { handler, createRunner } = buildHandler(adapter);
+		await handler.handleEvent({
+			eventId: "mention",
+			threadKey: "env-thread",
+		} as any);
+
+		expect(createRunner.mock.calls[0]![0].additionalEnv).toEqual({
+			CYRUS_REQUESTER_EMAIL: "ana@example.com",
+		});
 	});
 
 	it("starts a session for an initiating event", async () => {
@@ -675,6 +695,44 @@ describe("SlackChatAdapter access control", () => {
 			text: "Ask an admin for access.",
 			thread_ts: "1700000000.000200",
 		});
+	});
+
+	it("describes who started a direct-message session", async () => {
+		vi.spyOn(SlackMessageService.prototype, "getUserEmail").mockResolvedValue(
+			"ana@example.com",
+		);
+		const dm = event({
+			eventType: "message",
+			payload: {
+				type: "message",
+				channel_type: "im",
+				user: "U1",
+				channel: "D1",
+				text: "hi",
+				ts: "1700000000.000200",
+				event_ts: "1700000000.000200",
+			},
+		});
+
+		expect(await adapterWith(undefined).getSessionEnv(dm)).toEqual({
+			CYRUS_PLATFORM: "slack",
+			CYRUS_SLACK_CHANNEL: "D1",
+			CYRUS_SLACK_CHANNEL_TYPE: "im",
+			CYRUS_REQUESTER_SLACK_ID: "U1",
+			CYRUS_REQUESTER_EMAIL: "ana@example.com",
+		});
+	});
+
+	it("leaves the email out when it can't be looked up", async () => {
+		vi.spyOn(SlackMessageService.prototype, "getUserEmail").mockRejectedValue(
+			new Error("missing_scope"),
+		);
+
+		const env = await adapterWith(undefined).getSessionEnv(event());
+
+		expect(env.CYRUS_REQUESTER_SLACK_ID).toBe("U1");
+		expect(env).not.toHaveProperty("CYRUS_REQUESTER_EMAIL");
+		expect(env).not.toHaveProperty("CYRUS_SLACK_CHANNEL_TYPE");
 	});
 
 	it("ignores a refused plain thread reply quietly, even when blockBehavior is reply", async () => {

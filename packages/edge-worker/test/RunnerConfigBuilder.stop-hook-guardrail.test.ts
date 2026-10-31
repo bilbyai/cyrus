@@ -250,4 +250,38 @@ describe("inspectGitGuardrail", () => {
 			rmSync(remote, { recursive: true, force: true });
 		}
 	});
+
+	it("treats commits pushed to the branch's own remote branch as shipped, even when it tracks main", () => {
+		// Issue worktrees are created with `--track` on origin/main, and the
+		// sandbox blocks the .git/config write `git push -u` needs to change it.
+		const remote = mkdtempSync(join(tmpdir(), "cyrus-stop-hook-remote-"));
+		try {
+			execSync(`git init --bare`, { cwd: remote, stdio: "ignore" });
+			git(workdir, "init -b main");
+			git(workdir, `remote add origin ${remote}`);
+			writeFileSync(join(workdir, "README.md"), "hello\n");
+			git(workdir, "add README.md");
+			git(workdir, 'commit -m "init"');
+			git(workdir, "push -u origin main");
+
+			git(workdir, "switch -c feature --track origin/main");
+			writeFileSync(join(workdir, "feature.txt"), "feature\n");
+			git(workdir, "add feature.txt");
+			git(workdir, 'commit -m "feature"');
+			git(workdir, "push origin feature");
+
+			expect(inspectGitGuardrail(workdir, silentLogger)).toBeNull();
+		} finally {
+			rmSync(remote, { recursive: true, force: true });
+		}
+	});
+
+	it("does not block on commits in a repo with no remote", () => {
+		git(workdir, "init -b main");
+		writeFileSync(join(workdir, "README.md"), "hello\n");
+		git(workdir, "add README.md");
+		git(workdir, 'commit -m "init"');
+
+		expect(inspectGitGuardrail(workdir, silentLogger)).toBeNull();
+	});
 });

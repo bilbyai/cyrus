@@ -755,8 +755,8 @@ export class RunnerConfigBuilder {
 /**
  * Build a Stop hook that ensures the agent ships work before ending the
  * session. Inspects the working tree at the session cwd and blocks the first
- * stop attempt when there are uncommitted tracked changes or commits ahead
- * of the upstream branch. The `stop_hook_active` flag prevents infinite
+ * stop attempt when there are uncommitted tracked changes or commits no
+ * remote branch has. The `stop_hook_active` flag prevents infinite
  * loops — once the hook has fired, the next stop is allowed through.
  *
  * Pre-existing untracked files (local scratch files, env files, IDE
@@ -798,8 +798,8 @@ export function buildStopHook(
 
 /**
  * Inspect the working tree at `cwd` and return a guardrail message if there
- * is unshipped work (uncommitted tracked changes or commits ahead of the
- * upstream). Returns null when the tree is clean, when `cwd` isn't a git
+ * is unshipped work (uncommitted tracked changes or commits no remote branch
+ * has). Returns null when the tree is clean, when `cwd` isn't a git
  * repo, or when git is unavailable — in those cases the stop is not blocked.
  *
  * Uses `--untracked-files=no` so that pre-existing untracked files in the
@@ -833,20 +833,18 @@ export function inspectGitGuardrail(cwd: string, log: ILogger): string | null {
 		.filter((line) => line.length > 0);
 	const hasUncommitted = uncommittedFiles.length > 0;
 
+	// A commit counts as pushed once any remote branch has it. Issue worktrees
+	// track origin/main, and the sandbox blocks the .git/config write that
+	// `git push -u` needs, so comparing against `@{u}` flags pushed work.
+	// With no remote branches there is nowhere to push, so commits alone don't block.
 	let unpushedCount = 0;
 	try {
-		unpushedCount = parseInt(runGit("rev-list --count @{u}..HEAD"), 10) || 0;
-	} catch {
-		// No upstream configured — fall back to comparing against origin's default branch.
-		try {
-			const baseRef = runGit("rev-parse --verify --abbrev-ref origin/HEAD");
-			if (baseRef) {
-				unpushedCount =
-					parseInt(runGit(`rev-list --count ${baseRef}..HEAD`), 10) || 0;
-			}
-		} catch {
-			// Can't determine a base — be conservative and don't block on commits alone.
+		if (runGit("for-each-ref --count=1 refs/remotes")) {
+			unpushedCount =
+				parseInt(runGit("rev-list --count HEAD --not --remotes"), 10) || 0;
 		}
+	} catch {
+		// No commits yet, or git failed — be conservative and don't block on commits alone.
 	}
 
 	if (!hasUncommitted && unpushedCount === 0) {

@@ -11,6 +11,7 @@
  * @see https://zulip.com/api/get-messages
  */
 
+import { redactSecrets } from "cyrus-core";
 import type { ZulipCredentials, ZulipMessage } from "./types.js";
 
 /** Where a message should be posted */
@@ -55,7 +56,7 @@ export class ZulipMessageService {
 	async postMessage(params: ZulipPostMessageParams): Promise<number> {
 		const { credentials, destination, content } = params;
 
-		const body = new URLSearchParams({ content });
+		const body = new URLSearchParams({ content: redactSecrets(content) });
 		if (destination.type === "stream") {
 			body.set("type", "stream");
 			body.set("to", String(destination.streamId));

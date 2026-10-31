@@ -5,6 +5,8 @@
  * to post notes on merge requests and reply to discussion threads.
  */
 
+import { redactSecrets } from "cyrus-core";
+
 export interface GitLabCommentServiceConfig {
 	/** GitLab API base URL (default: https://gitlab.com) */
 	apiBaseUrl?: string;
@@ -92,7 +94,7 @@ export class GitLabCommentService {
 				"PRIVATE-TOKEN": token,
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ body }),
+			body: JSON.stringify({ body: redactSecrets(body) }),
 		});
 
 		if (!response.ok) {
@@ -122,7 +124,7 @@ export class GitLabCommentService {
 				"PRIVATE-TOKEN": token,
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ body }),
+			body: JSON.stringify({ body: redactSecrets(body) }),
 		});
 
 		if (!response.ok) {

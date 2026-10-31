@@ -1,3 +1,15 @@
+export {
+	CYRUS_INTERNAL_SECRET_ENV_KEYS,
+	withoutCyrusSecrets,
+} from "./agent-env.js";
+export type { SecretRedactorOptions } from "./SecretRedactor.js";
+export {
+	isSensitiveName,
+	redactSecrets,
+	redactSecretsDeep,
+	SecretRedactor,
+	secretRedactor,
+} from "./SecretRedactor.js";
 export type {
 	WebhookIpValidatorOptions,
 	WebhookProvider,

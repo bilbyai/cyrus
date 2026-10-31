@@ -5,6 +5,8 @@
  * to post replies on PR issue comments and PR review comments.
  */
 
+import { redactSecrets } from "cyrus-core";
+
 export interface GitHubCommentServiceConfig {
 	/** GitHub API base URL (default: https://api.github.com) */
 	apiBaseUrl?: string;
@@ -98,7 +100,7 @@ export class GitHubCommentService {
 				"Content-Type": "application/json",
 				"X-GitHub-Api-Version": "2022-11-28",
 			},
-			body: JSON.stringify({ body }),
+			body: JSON.stringify({ body: redactSecrets(body) }),
 		});
 
 		if (!response.ok) {
@@ -131,7 +133,7 @@ export class GitHubCommentService {
 				"Content-Type": "application/json",
 				"X-GitHub-Api-Version": "2022-11-28",
 			},
-			body: JSON.stringify({ body }),
+			body: JSON.stringify({ body: redactSecrets(body) }),
 		});
 
 		if (!response.ok) {

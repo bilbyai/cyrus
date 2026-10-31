@@ -11,6 +11,7 @@ import {
 	type SDKResultMessage,
 	type SDKUserMessage,
 	StreamingPrompt,
+	withoutCyrusSecrets,
 } from "cyrus-core";
 import { extractSessionId, geminiEventToSDKMessage } from "./adapters.js";
 import { GeminiMessageFormatter } from "./formatter.js";
@@ -324,8 +325,9 @@ export class GeminiRunner extends EventEmitter implements IAgentRunner {
 				useStdin = true;
 			}
 
-			// Prepare environment variables for Gemini CLI
-			const geminiEnv = { ...process.env };
+			// Prepare environment variables for Gemini CLI, without Cyrus's own
+			// integration credentials
+			const geminiEnv = withoutCyrusSecrets(process.env);
 
 			if (this.config.appendSystemPrompt) {
 				try {

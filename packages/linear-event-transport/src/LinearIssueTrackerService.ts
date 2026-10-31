@@ -50,7 +50,12 @@ import type {
 	User,
 	WorkflowState,
 } from "cyrus-core";
-import { createLogger, type ILogger } from "cyrus-core";
+import {
+	createLogger,
+	type ILogger,
+	redactSecrets,
+	redactSecretsDeep,
+} from "cyrus-core";
 import { LinearEventTransport } from "./LinearEventTransport.js";
 
 /**
@@ -380,7 +385,7 @@ export class LinearIssueTrackerService implements IIssueTrackerService {
 		try {
 			const updatePayload = await this.linearClient.updateIssue(
 				issueId,
-				updates,
+				redactSecretsDeep(updates),
 			);
 
 			if (!updatePayload.success) {
@@ -542,8 +547,9 @@ export class LinearIssueTrackerService implements IIssueTrackerService {
 		input: CommentCreateInput,
 	): Promise<Comment> {
 		try {
-			// Build the comment body, optionally appending attachment URLs
-			let finalBody = input.body;
+			// Build the comment body, optionally appending attachment URLs.
+			// Attachment URLs are added after redaction so signed links survive.
+			let finalBody = redactSecrets(input.body);
 
 			// If attachment URLs are provided, append them to the comment body as markdown
 			if (input.attachmentUrls && input.attachmentUrls.length > 0) {
@@ -565,8 +571,8 @@ export class LinearIssueTrackerService implements IIssueTrackerService {
 					.join("\n");
 
 				// Append attachments to the body with a separator if body is not empty
-				finalBody = input.body
-					? `${input.body}\n\n${attachmentMarkdown}`
+				finalBody = finalBody
+					? `${finalBody}\n\n${attachmentMarkdown}`
 					: attachmentMarkdown;
 			}
 
@@ -813,11 +819,15 @@ export class LinearIssueTrackerService implements IIssueTrackerService {
 	/**
 	 * Post an agent activity to an agent session.
 	 * Signature matches Linear SDK's createAgentActivity exactly.
+	 * Activities carry raw tool output, so secrets are redacted first.
 	 */
 	async createAgentActivity(
 		input: AgentActivityCreateInput,
 	): Promise<AgentActivityPayload> {
-		return await this.linearClient.createAgentActivity(input);
+		return await this.linearClient.createAgentActivity({
+			...input,
+			content: redactSecretsDeep(input.content),
+		});
 	}
 
 	// ========================================================================

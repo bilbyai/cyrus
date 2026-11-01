@@ -96,6 +96,16 @@ export function isSensitiveName(name: string): boolean {
 	return SENSITIVE_NAME_PARTS.some((part) => lower.includes(part));
 }
 
+/**
+ * True when an environment variable's value should be treated as a secret.
+ * Wider than {@link isSensitiveName}: `*_KEY` variables hold API keys, and
+ * MCP servers get their secrets through `MCP_*` variables. Too broad for
+ * assignments in output, where `"key": "..."` is ordinary JSON.
+ */
+function isSecretEnvName(name: string): boolean {
+	return isSensitiveName(name) || /_KEY$/i.test(name) || /^MCP_/i.test(name);
+}
+
 function isRedactableValue(value: string): boolean {
 	if (value.length < MIN_SECRET_LENGTH) return false;
 	if (/^(true|false|null|undefined)$/i.test(value)) return false;
@@ -208,7 +218,7 @@ export class SecretRedactor {
 	private knownSecrets(): Array<[value: string, name: string]> {
 		const secrets = new Map(this.registered);
 		for (const [name, value] of Object.entries(this.env())) {
-			if (value && isSensitiveName(name) && isRedactableValue(value)) {
+			if (value && isSecretEnvName(name) && isRedactableValue(value)) {
 				if (!secrets.has(value)) secrets.set(value, name);
 			}
 		}

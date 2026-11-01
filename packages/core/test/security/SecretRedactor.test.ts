@@ -55,6 +55,29 @@ describe("SecretRedactor", () => {
 			expect(redactor.redact(text)).toBe(text);
 		});
 
+		it("redacts values of *_KEY variables and of MCP servers' MCP_* variables", () => {
+			const redactor = redactorWithEnv({
+				LICENSE_KEY: "lk-1234567890abcdef",
+				MCP_NOTION_PAT: "ntn-abcdefgh12345678",
+			});
+
+			expect(
+				redactor.redact("lk-1234567890abcdef and ntn-abcdefgh12345678"),
+			).toBe("[REDACTED:LICENSE_KEY] and [REDACTED:MCP_NOTION_PAT]");
+		});
+
+		it("leaves other KEY names and MCP settings alone", () => {
+			const redactor = redactorWithEnv({
+				KEYBOARD_LAYOUT: "us-international-x",
+				GIT_CONFIG_KEY_0: "credential.helper",
+				MCP_CONNECTION_NONBLOCKING: "true",
+			});
+			const text =
+				'us-international-x credential.helper true "key": "WEB-1383-x"';
+
+			expect(redactor.redact(text)).toBe(text);
+		});
+
 		it("prefers the longest match when one secret contains another", () => {
 			const redactor = redactorWithEnv({
 				OUTER_SECRET: "prefix-inner-secret-value-suffix",

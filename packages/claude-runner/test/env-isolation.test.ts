@@ -213,6 +213,26 @@ describe("Environment variable isolation", () => {
 		expect(env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB).toBeUndefined();
 	});
 
+	it("should keep Cyrus's own credentials out of the session env", async () => {
+		vi.stubEnv("SLACK_BOT_TOKEN", "xoxb-cyrus-bot");
+		vi.stubEnv("LINEAR_WEBHOOK_SECRET", "linear-webhook-secret");
+		vi.stubEnv("CYRUS_API_KEY", "cyrus-api-key");
+		vi.stubEnv("ANTHROPIC_API_KEY", "model-key");
+		try {
+			mockSuccessfulQuery();
+			const runner = new ClaudeRunner(makeConfig("/repo-a"));
+			await runner.start("test");
+
+			const env = getQueryEnv();
+			expect(env.SLACK_BOT_TOKEN).toBeUndefined();
+			expect(env.LINEAR_WEBHOOK_SECRET).toBeUndefined();
+			expect(env.CYRUS_API_KEY).toBeUndefined();
+			expect(env.ANTHROPIC_API_KEY).toBe("model-key");
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
 	it("should log sandbox requirement guidance when the Linux sandbox precheck fails", async () => {
 		vi.mocked(checkLinuxSandboxRequirements).mockReturnValueOnce({
 			supported: false,

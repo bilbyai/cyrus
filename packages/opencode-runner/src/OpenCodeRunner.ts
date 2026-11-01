@@ -10,6 +10,7 @@ import type {
 	SDKResultMessage,
 	SDKUserMessage,
 } from "cyrus-core";
+import { withoutCyrusSecrets } from "cyrus-core";
 import {
 	buildOpenCodeConfig,
 	buildOpenCodeRuntimeEnv,
@@ -390,7 +391,7 @@ export class OpenCodeRunner extends EventEmitter implements IAgentRunner {
 			const child = spawn(this.config.openCodePath || "opencode", args, {
 				cwd: this.config.workingDirectory || cwd(),
 				env: {
-					...process.env,
+					...withoutCyrusSecrets(process.env),
 					...this.config.env,
 					...runtimeEnv,
 				},

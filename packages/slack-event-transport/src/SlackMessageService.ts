@@ -5,6 +5,8 @@
  * typically used to reply to @mention webhooks in a thread.
  */
 
+import { redactSecrets } from "cyrus-core";
+
 /**
  * A single message from a Slack thread (conversations.replies)
  */
@@ -72,7 +74,7 @@ export class SlackMessageService {
 
 		const url = `${this.apiBaseUrl}/chat.postMessage`;
 
-		const body: Record<string, string> = { channel, text };
+		const body: Record<string, string> = { channel, text: redactSecrets(text) };
 		if (thread_ts) {
 			body.thread_ts = thread_ts;
 		}

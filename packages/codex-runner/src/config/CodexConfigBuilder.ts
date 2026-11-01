@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { withoutCyrusSecrets } from "cyrus-core";
 import type { ResolvedCodexConfig } from "../backend/types.js";
 import type {
 	CodexConfigOverrides,
@@ -104,19 +105,22 @@ export class CodexConfigBuilder {
 		return codexHome;
 	}
 
-	private buildEnvOverride(
-		codexHome: string,
-	): Record<string, string> | undefined {
-		if (!this.config.codexHome) {
-			return undefined;
-		}
+	/**
+	 * Always an explicit env: without one the app-server would inherit Cyrus's
+	 * own integration credentials from `process.env`.
+	 */
+	private buildEnvOverride(codexHome: string): Record<string, string> {
 		const env: Record<string, string> = {};
-		for (const [key, value] of Object.entries(process.env)) {
+		for (const [key, value] of Object.entries(
+			withoutCyrusSecrets(process.env),
+		)) {
 			if (typeof value === "string") {
 				env[key] = value;
 			}
 		}
-		env.CODEX_HOME = codexHome;
+		if (this.config.codexHome) {
+			env.CODEX_HOME = codexHome;
+		}
 		return env;
 	}
 

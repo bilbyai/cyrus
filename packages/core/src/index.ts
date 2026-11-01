@@ -269,16 +269,25 @@ export {
 } from "./PersistenceManager.js";
 export { StreamingPrompt } from "./StreamingPrompt.js";
 export type {
+	SecretRedactorOptions,
 	WebhookIpValidatorOptions,
 	WebhookProvider,
 } from "./security/index.js";
-// Webhook IP validation
+// Webhook IP validation, secret redaction for everything Cyrus posts to
+// external platforms, and agent environments without Cyrus's own credentials
 export {
+	CYRUS_INTERNAL_SECRET_ENV_KEYS,
 	GITHUB_WEBHOOK_CIDRS_FALLBACK,
 	GITLAB_WEBHOOK_CIDRS,
 	ipMatchesAllowlist,
+	isSensitiveName,
 	LINEAR_WEBHOOK_IPS,
+	redactSecrets,
+	redactSecretsDeep,
+	SecretRedactor,
+	secretRedactor,
 	WebhookIpValidator,
+	withoutCyrusSecrets,
 } from "./security/index.js";
 // Simple Agent Runner types
 export type {

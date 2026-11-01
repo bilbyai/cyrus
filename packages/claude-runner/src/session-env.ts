@@ -5,6 +5,8 @@
  * ClaudeRunner (query options) and EdgeWorker (warmup / startup).
  */
 
+import { withoutCyrusSecrets } from "cyrus-core";
+
 /**
  * Auth-related env vars forwarded from the parent process.
  * The SDK subprocess needs these for API calls.
@@ -41,15 +43,16 @@ export const CYRUS_SESSION_ENV = {
  * Overlays the full parent `process.env` so HOME (and other inherited vars) are
  * available to tools that depend on them — GPG-signed commits, `gh` CLI auth,
  * etc. claude-agent-sdk v0.2.113 reverted to no longer overlaying process.env
- * itself, so we must do it here. Then applies the shared Cyrus session flags
- * on top. Callers can spread additional vars on top (e.g., repository .env
- * for live runs).
+ * itself, so we must do it here. Cyrus's own integration credentials are left
+ * out, since a session that prints its environment would expose them. Then
+ * applies the shared Cyrus session flags on top. Callers can spread additional
+ * vars on top (e.g., repository .env for live runs).
  */
 export function buildBaseSessionEnv(
 	extra?: Record<string, string>,
 ): Record<string, string> {
 	const env: Record<string, string> = {
-		...(process.env as Record<string, string>),
+		...(withoutCyrusSecrets(process.env) as Record<string, string>),
 	};
 
 	// Forward PATH
